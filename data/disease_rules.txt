@@ -1,9 +1,35 @@
-# Medinova Disease Rules Repository
-# Format: Disease Name | Symptoms | Urgency (Critical/Low) | Specialist/Home Care
+# Medinova Medical Rules Database - Comprehensive Disease Reference
+# Format: Disease | Keywords | Symptoms (Urdu) | Urgency (RED/YELLOW/GREEN) | Specialist | Home Care
 
-Flu | بخار، کھانسی، گلے میں سوزش | Low | آرام کریں اور زیادہ سے زیادہ پانی پیئیں۔
-Heart Attack | سینے میں شدید درد، سانس لینے میں دشواری، پسینہ آنا | Critical | فوری طور پر امراض قلب کے ماہر (Cardiologist) سے رجوع کریں۔
-Diabetes | زیادہ پیاس لگنا، بار بار پیشاب آنا، تھکاوٹ | Low | شوگر کے ماہر (Endocrinologist) سے مشورہ کریں۔
-Asthma | سانس لینے میں دشواری، کھانسی، سینے میں جکڑن | Critical | پھیپھڑوں کے ماہر (Pulmonologist) سے رجوع کریں۔
-Common Cold | چھینکیں، ناک بہنا، ہلکا سر درد | Low | جوشاندہ استعمال کریں اور آرام کریں۔
-Covid-19 | تیز بخار، خشک کھانسی، سونگھنے کی حس کا ختم ہونا | Critical | فوری طور پر قرنطینہ کریں اور ڈاکٹر سے رابطہ کریں۔
+Possible Dengue | Tez bukhar, jism me dard, sar me dard, aankhon k peeche dard, haddiyon me dard, daane | تیز بخار، جسم میں درد، سر میں درد، آنکھوں کے پیچھے درد، ہڈیوں میں درد، دانے | RED | General Physician / Infectious Disease | آرام کریں، پانی خوب پیئں، اپنے آپ کو دوا دینے سے بچیں، بخار پر نگاہ رکھیں
+Possible Flu | Bukhar, khansi, jism toot raha hai, thakawat, nazla, zukam | بخار، کھانسی، جسم ٹوٹ رہا ہے، تھکاوٹ، نزلہ، زکام | YELLOW | General Physician | آرام کریں، سیال، گرم مشروبات
+Possible Diabetes Risk | Boht zayada pyaas, baar baar peshab ana, har waqt thakawat, kamzori | بہت زیادہ پیاس، بار بار پیشاب آنا، ہر وقت تھکاوٹ، کمزوری | YELLOW | Endocrinologist | شوگر کم کریں، ڈاکٹر سے ٹیسٹ کی مشورہ لیں
+Possible Cardiac Issue | Seene me dard, ulte baazu me dard, chakkar, paseena ana, dil me dabaao | سینے میں درد، الٹے بازو میں درد، چکر، پسینہ آنا، دل میں دباؤ | RED | Emergency / Cardiologist | فوری طور پر ہنگامی مدد حاصل کریں
+Possible Orthopedic Issue | Jorhon me dard, soojan, haddiyon me dard, jism me akran | جوڑوں میں درد، سوجن، ہڈیوں میں درد، جسم میں اکٹھاپن | YELLOW | Orthopedic Doctor | آرام کریں، دباؤ سے بچیں، گرم سیکی کریں
+Possible Allergy | Cheenkein, khujli, khariwsh, aankhon se pani ana | چھینکیں، خجلی، خراش، آنکھوں سے پانی آنا | GREEN | General Physician | الرجن سے دوری رکھیں، ڈاکٹر کے مشورے سے اینٹی ہسٹامین لیں
+Mild Viral Infection | Halka bukhar, thori si thakawat, hararat | ہلکا بخار، تھوڑی سی تھکاوٹ، حرارت | GREEN | General Physician | آرام کریں، پانی
+Common Cold | Naak behna, cheenkein, halki khansi, gala kharab, naak band | ناک بہنا، چھینکیں، ہلکی کھانسی، گلا خراب، ناک بند | GREEN | General Physician / Pharmacist | آرام کریں، سیال، گرم مشروبات، مناسب نیند
+Mild Food Poisoning | Ulti ana, matli, dast, loose motions, pait me maror | الٹی آنا، متلی، دست، لوز موشنز، پیٹ میں مروڑ | YELLOW | General Physician | منہ سے پانی دینا، خفیف غذا، آرام
+Heat Exhaustion | Boht zayada paseena, kamzori, chakkar, sar dard, garmi lagna | بہت زیادہ پسینہ، کمزوری، چکر، سر درد، گرمی لگنا | YELLOW | General Physician | ٹھنڈی جگہ پر جائیں، فوری طور پر ہائڈریٹ کریں، آرام کریں
+Severe Breathing Difficulty | Saans lene me takleef, saans phoolna, seene me ghutan, saans nahi aa rahi | سانس لینے میں تکلیف، سانس پھولنا، سینے میں گھٹن، سانس نہیں آ رہی | RED | Emergency Department | فوری طور پر ہنگامی طبی امداد حاصل کریں
+Possible Stroke | Achanak kamzori, muh tera hona, zaban larkharana, hath pair sunn hona | اچانک کمزوری، منہ ٹیڑھا ہونا، زبان لڑکھڑانا، ہاتھ پیر سن ہونا | RED | Emergency Department / Neurologist | فوری طور پر ہنگامی خدمات کو کال کریں
+Possible Throat Infection (Pharyngitis) | Gala kharab, thook nigalne me dard, halka bukhar, gale me dard | گلا خراب، تھوک نگلنے میں درد، ہلکا بخار، گلے میں درد | GREEN | General Physician / ENT | نمکین پانی سے کلی کریں، سیال، آرام
+Possible Gastroenteritis | Dast ana, ultiyan, pait me dard, kamzoli | دست آنا، الٹیاں، پیٹ میں درد، کمزوری | YELLOW | General Physician | ہائڈریشن، ہلکی غذا، اورل ری ہائڈریشن سالٹس
+Possible Migraine | Shadeed sar dard, aadhe sar me dard, matli, roshni se masla | شدید سر درد، آدھے سر میں درد، متلی، روشنی سے مسئلہ | YELLOW | Neurologist / General Physician | اندھیری کمرے میں آرام کریں، ہائڈریشن، دباؤ سے بچیں
+Possible Sinusitis | Chehre me dard, naak band, sar me dabaao | چہرے میں درد، ناک بند، سر میں دباؤ | YELLOW | ENT Specialist | بھاپ لیں، گرم سیال، آرام
+Dental Issue | Daant me dard, masooron me soojan, thanda garam lagna | دانت میں درد، مسوڑوں میں سوجن، ٹھنڈا گرم لگنا | GREEN | Dentist | سردو گرم غذا سے بچیں، منہ کی صفائی
+Muscle Sprain / Minor Injury | Moch ana, soojan, hath pair me dard, hilane me dard | موچ آنا، سوجن، ہاتھ پیر میں درد، ہلانے میں درد | GREEN | Orthopedic Doctor | آرام کریں، برف لگائیں، اونچا رکھیں
+Possible Dehydration | Khushk muh, chakkar ana, kamzoli, peela peshab | خشک منہ، چکر آنا، کمزوری، پیلا پیشاب | YELLOW | General Physician | ORS، پانی، آرام
+Ischemic Heart Disease | Saans phoolna, seene me bechaini, har waqt thakawat | سانس پھولنا، سینے میں بے چینی، ہر وقت تھکاوٹ | RED | Cardiologist | متوازن غذا، ورزش، تمباکو اور الکوحل سے بچیں
+Hypertension (High Blood Pressure) | Blood pressure tez, sar me bhari-pan, saans phoolna | بلڈ پریشر تیز، سر میں بھاری پن، سانس پھولنا | YELLOW | Cardiologist or Primary Care Physician | کم نمک، ورزش، تمباکو اور الکوحل سے بچیں
+Asthma | Dama, saans ki takleef, khansi, seene me ceti ki awaz | دمہ، سانس کی تکلیف، کھانسی، سینے میں سیٹی کی آواز | YELLOW | Pulmonologist or Allergist | ٹریگرز سے بچیں، انہیلر استعمال کریں
+Cholera | Shadeed dast, boht ultiyan, pait saaf pani jesa bahna | شدید دست، بہت الٹیاں، پیٹ صاف پانی جیسا بہنا | YELLOW | Infectious Disease Specialist | ORS، محفوظ پانی
+Multiple Sclerosis (MS) | Zehan kam nahi karta, yaaddasht ka masla, jism hilane me takleef, kamzoli | دماغ کام نہیں کرتا، یادداشت کا مسئلہ، جسم ہلانے میں تکلیف، کمزوری | YELLOW | Neurologist | وٹامن D، سرگرمی کا انتظام
+Dysthymia | Udaasi, har waqt mood kharab, susti, zehan hazir na hona | اداسی، ہر وقت موڈ خراب، سستی، دماغ حاضر نہ ہونا | YELLOW | Psychiatrist or Psychologist | تھیراپی، طرز زندگی میں تبدیلی
+Epilepsy | Mirgi k daure, jhatke lagna, behoshi, zehni jhatka | مرگی کے دورے، جھٹکے لگنا، بے ہوشی، ذہنی جھٹکا | YELLOW | Neurologist | ادویات کی پابندی، دباؤ کنٹرول
+Graves' Disease | Gala soojna, gland ka masla, jazbaati tabdeeli, gussa ana | گلا سوجنا، گلینڈ کا مسئلہ، جذباتی تبدیلی، غصہ آنا | YELLOW | Endocrinologist | طبی نگرانی، مراقبت
+Measles | Khasra, jism par laal daane, tez bukhar, nazla khansi | خسرہ، جسم پر لال دانے، تیز بخار، نزلہ کھانسی | YELLOW | Pediatrician or Primary Care Physician | علیحدگی، صفائی
+Strep Throat | Gale ka infection, shadeed khansi, bukhar, gale me pips | گلے کا انفیکشن، شدید کھانسی، بخار، گلے میں پپ | YELLOW | Primary Care Physician | چیزیں شیئر کرنے سے بچیں، صفائی
+Kidney Diseases | Gurdon ka masla, har waqt thakawat, saans phoolna, peshab me takleef | گردوں کا مسئلہ، ہر وقت تھکاوٹ، سانس پھولنا، پیشاب میں تکلیف | YELLOW | Nephrologist | غذا کنٹرول، بی پی کا انتظام
+Parkinson's Disease | Haath kaanpna, raasha, chalne me mushkil, bhool jana | ہاتھ کانپنا، راشا، چلنے میں مشکل، بھول جانا | YELLOW | Neurologist | ورزش، مراقبت
+Anorexia Nervosa | Bhook na lagna, khana na khana, boht zayada wazan kam hona, kamzoli | بھوک نہ لگنا، کھانا نہ کھانا، بہت زیادہ وزن کم ہونا، کمزوری | YELLOW | Psychiatrist or Psychologist | غذائی + نفسیاتی معاونت
