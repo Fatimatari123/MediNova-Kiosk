@@ -16,7 +16,6 @@ import wave
 import time
 import random
 from datetime import datetime
-from fpdf import FPDF
 from static_ffmpeg import add_paths
 
 # Add ffmpeg paths
@@ -816,28 +815,16 @@ class MedinovaKiosk:
             ("رپورٹ نوٹ", report_note)
         ]
 
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", "B", 16)
-        pdf.cell(0, 10, "Medinova صحت کی رپورٹ", ln=True, align="C")
-        pdf.ln(8)
-        pdf.set_font("Arial", "", 12)
-        for label, value in lines:
-            pdf.cell(0, 8, f"{label}: {value}", ln=True)
-        path = f"{filename_base}_report_{int(time.time())}.pdf"
-        try:
-            pdf.output(path)
-            self.log("AI", f"DOWNLOADABLE REPORT READY: {path}")
-            self.speak("آپ کی رپورٹ تیار ہے۔ اللہ حافظ۔")
-            messagebox.showinfo("Report Ready", f"Saved to {path}")
-        except Exception:
-            path = f"{filename_base}_report_{int(time.time())}.txt"
-            with open(path, "w", encoding="utf-8") as f:
-                for label, value in lines:
-                    f.write(f"{label}: {value}\n")
-            self.log("AI", f"DOWNLOADABLE REPORT READY: {path}")
-            self.speak("آپ کی رپورٹ تیار ہے۔ اللہ حافظ۔")
-            messagebox.showinfo("Report Ready", f"Saved to {path}")
+        path = f"{filename_base}_report_{int(time.time())}.txt"
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("Medinova صحت کی رپورٹ\n")
+            f.write("=" * 40 + "\n\n")
+            for label, value in lines:
+                f.write(f"{label}: {value}\n")
+
+        self.log("AI", f"DOWNLOADABLE REPORT READY: {path}")
+        self.speak("آپ کی رپورٹ تیار ہے۔ اللہ حافظ۔")
+        messagebox.showinfo("Report Ready", f"Saved to {path}")
 
     def pause_and_breathe(self):
         if self.is_breathing: return
