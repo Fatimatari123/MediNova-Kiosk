@@ -1,0 +1,10 @@
+speechrecognition
+gTTS
+pydub
+pygame-ce
+groq
+python-dotenv
+sounddevice
+numpy
+static-ffmpeg
+
