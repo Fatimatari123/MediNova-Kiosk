@@ -74,8 +74,10 @@ class MedinovaKiosk:
         self.mic_pulse_step = 0
         self.dht_rules = self.load_dht_rules("data/dht_rules.txt")
         self.disease_rules = self.load_disease_rules("data/disease_rules.txt")
+        self.disease_followups = self.create_disease_followups()
+        self.detected_disease = None  # Track detected disease
 
-        pygame.mixer.init()
+        pygame.mixer.inpit()
         self.setup_ui()
 
     def setup_ui(self):
@@ -161,26 +163,144 @@ class MedinovaKiosk:
                 line = line.strip()
                 if not line or line.startswith("#"): continue
                 parts = [part.strip() for part in line.split("|")]
-                if len(parts) >= 4:
-                    urgency = parts[2].strip().lower()
-                    specialist = ""
-                    care = ""
-                    if len(parts) > 4:
-                        specialist = parts[3]
-                        care = parts[4]
-                    else:
-                        if urgency == 'low':
-                            care = parts[3]
-                        else:
-                            specialist = parts[3]
+                # New format: Disease | Keywords | Symptoms | Urgency | Specialist | Care
+                if len(parts) >= 6:
                     rules.append({
                         "disease": parts[0],
+                        "keywords": parts[1],
+                        "symptoms": parts[2],
+                        "urgency": parts[3],
+                        "specialist": parts[4],
+                        "care": parts[5]
+                    })
+                elif len(parts) >= 4:
+                    # Fallback for older format
+                    urgency = parts[2].strip().lower()
+                    rules.append({
+                        "disease": parts[0],
+                        "keywords": "",
                         "symptoms": parts[1],
-                        "urgency": parts[2],
-                        "specialist": specialist,
-                        "care": care
+                        "urgency": urgency if urgency in ['red', 'yellow', 'green'] else ('CRITICAL' if urgency == 'critical' else 'LOW'),
+                        "specialist": parts[3] if len(parts) > 3 else "",
+                        "care": parts[4] if len(parts) > 4 else ""
                     })
         return rules
+
+    def create_disease_followups(self):
+        """Create disease-specific follow-up questions"""
+        return {
+            "dengue": {
+                "questions": [
+                    "یہ بخار کب شروع ہوا؟",
+                    "کیا آپ کو جسم میں شدید درد ہے؟",
+                    "کیا آپ کو آنکھوں کے پیچھے درد ہے؟",
+                    "کیا آپ کو دانے نظر آ رہے ہیں؟",
+                    "براہِ کرم بتائیں، بخار کتنا شدید ہے؟"
+                ],
+                "keys": ["duration", "body_pain", "eye_pain", "rash", "severity"]
+            },
+            "flu": {
+                "questions": [
+                    "یہ علامات کب شروع ہوئیں؟",
+                    "کیا آپ کو کھانسی آ رہی ہے؟",
+                    "کیا جسم میں ٹوٹن محسوس ہو رہی ہے؟",
+                    "کیا آپ کو تھکاوٹ ہے؟",
+                    "براہِ کرم شدت بتائیں - کم، درمیانہ یا شدید؟"
+                ],
+                "keys": ["duration", "cough", "body_ache", "fatigue", "severity"]
+            },
+            "cold": {
+                "questions": [
+                    "یہ سردی کب شروع ہوئی؟",
+                    "کیا آپ کا ناک بہہ رہا ہے؟",
+                    "کیا آپ کو کھانسی آ رہی ہے؟",
+                    "کیا گلا خراب ہے؟",
+                    "براہِ کرم شدت بتائیں - کم، درمیانہ یا شدید؟"
+                ],
+                "keys": ["duration", "runny_nose", "cough", "sore_throat", "severity"]
+            },
+            "allergy": {
+                "questions": [
+                    "یہ الرجی علامات کب شروع ہوئیں؟",
+                    "کیا آپ کو خجلی ہو رہی ہے؟",
+                    "کیا آپ کو آنکھوں میں خراش محسوس ہو رہی ہے؟",
+                    "کیا آپ کو کوئی معلوم الرجن ہے؟",
+                    "براہِ کرم شدت بتائیں - کم، درمیانہ یا شدید؟"
+                ],
+                "keys": ["duration", "itching", "eye_irritation", "allergen", "severity"]
+            },
+            "throat": {
+                "questions": [
+                    "یہ گلے میں درد کب شروع ہوا؟",
+                    "کیا تھوک نگلنے میں درد ہے؟",
+                    "کیا آپ کو بخار ہے؟",
+                    "کیا آپ کو کھانسی آ رہی ہے؟",
+                    "براہِ کرم شدت بتائیں - کم، درمیانہ یا شدید؟"
+                ],
+                "keys": ["duration", "swallowing_pain", "fever", "cough", "severity"]
+            },
+            "cardiac": {
+                "questions": [
+                    "یہ سینے میں درد کب شروع ہوا؟",
+                    "کیا درد الٹے بازو میں بھی ہے؟",
+                    "کیا آپ کو سانس لینے میں دشواری ہے؟",
+                    "کیا آپ کو چکر آ رہے ہیں؟",
+                    "براہِ کرم بتائیں - کیا آپ کو پسینہ آ رہا ہے؟"
+                ],
+                "keys": ["duration", "left_arm", "breathing", "dizziness", "sweating"]
+            },
+            "diabetes": {
+                "questions": [
+                    "یہ علامات کتنے عرصے سے ہیں؟",
+                    "کیا آپ کو بہت زیادہ پیاس لگتی ہے؟",
+                    "کیا آپ کو بار بار پیشاب آتا ہے؟",
+                    "کیا آپ کو ہمیشہ تھکاوٹ محسوس ہوتی ہے؟",
+                    "براہِ کرم بتائیں - کیا آپ کے خاندار میں کوئی ذیابیطس کا مریض ہے؟"
+                ],
+                "keys": ["duration", "excessive_thirst", "frequent_urination", "fatigue", "family_history"]
+            },
+            "stroke": {
+                "questions": [
+                    "یہ علامات اچانک شروع ہوئیں؟",
+                    "کیا آپ کے منہ میں ٹیڑھاپن ہے؟",
+                    "کیا آپ کی زبان لڑکھڑا رہی ہے؟",
+                    "کیا آپ کے ہاتھ پیر سن ہیں؟",
+                    "کیا آپ کو بات کرنے میں مشکل ہو رہی ہے؟"
+                ],
+                "keys": ["sudden_onset", "facial_droop", "slurred_speech", "numbness", "speech_difficulty"]
+            },
+            "breathing": {
+                "questions": [
+                    "یہ سانس لینے میں دشواری کب شروع ہوئی؟",
+                    "کیا آپ کو سینے میں جکڑن محسوس ہو رہی ہے؟",
+                    "کیا سانس پھولنے میں سیٹی جیسی آواز آ رہی ہے؟",
+                    "کیا آپ کو سانس لینے میں بہت زیادہ تکلیف ہو رہی ہے؟",
+                    "براہِ کرم بتائیں - کیا یہ پہلے ہو چکا ہے؟"
+                ],
+                "keys": ["onset", "chest_tightness", "wheezing", "difficulty_level", "previous"]
+            },
+            "orthopedic": {
+                "questions": [
+                    "یہ درد کب شروع ہوا؟",
+                    "کیا اس جگہ سوجن ہے؟",
+                    "کیا آپ اس حصے کو حرکت دے سکتے ہیں؟",
+                    "کیا درد مستقل ہے یا وقفے وقفے سے ہے؟",
+                    "براہِ کرم شدت بتائیں - کم، درمیانہ یا شدید؟"
+                ],
+                "keys": ["duration", "swelling", "movement", "constant", "severity"]
+            },
+            "food_poisoning": {
+                "questions": [
+                    "یہ علامات کب شروع ہوئیں؟",
+                    "کیا آپ کو الٹیاں آ رہی ہیں؟",
+                    "کیا آپ کو پیٹ میں شدید درد ہے؟",
+                    "کیا آپ کو دست آئے ہیں؟",
+                    "براہِ کرم بتائیں - کیا آپ کو حالیہ میں کوئی خراب کھانا کھایا ہے؟"
+                ],
+                "keys": ["duration", "vomiting", "pain", "diarrhea", "food_history"]
+            }
+        }
+
 
     def tokenize(self, text):
         import re
@@ -377,37 +497,25 @@ class MedinovaKiosk:
                 self.patient_data['location'] = location
                 # Try to match a disease rule now using tokens
                 match = self.match_disease_rule()
-                # If we have a confident match (>=60% symptoms matched), present analysis immediately
+                # If we have a confident match (>=60% symptoms matched), ask disease-specific follow-ups
                 if match and match.get('score', 0) >= 0.6:
-                    self.patient_data['symptom'] = match['rule']['disease']
-                    self.patient_data['specialist'] = match['rule'].get('specialist','')
-                    self.finalize_triage()
-                    summary = self.build_analysis_summary()
-                    self.ai_reply(summary)
-                    # After confident analysis, act based on urgency
-                    if self.urgency_level == 'GREEN':
-                        self.dialog_state = 'idle'
-                        self.conversation_started = False
-                        return False
-                    if self.urgency_level == 'YELLOW':
-                        self.dialog_state = 'appointment_offer'
-                        self.ai_reply("گھر پر دیکھ بھال آپ کے لئے مفید ہو سکتی ہے، اور میں آپ کو ڈاکٹر سے ملاقات بک کرنے کی بھی سفارش کرتا ہوں۔ کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
-                        return True
-                    # RED
-                    self.dialog_state = 'appointment_offer'
-                    self.ai_reply("یہ صورتحال شدید خطرے کی جانب اشارہ دیتی ہے، اور میں آپ کو فوری طور پر ڈاکٹر سے ملاقات بک کرنے کی سفارش کرتا ہوں۔ کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
+                    # Generate disease-specific follow-up questions
+                    self.generate_follow_ups_from_rules(location, match)
+                    self.dialog_state = "collect_follow_up"
+                    self.follow_up_index = 0
+                    self.ai_reply("براہِ کرم مزید تفصیل بتائیں۔ " + self.follow_up_questions[self.follow_up_index])
+                    self.follow_up_index += 1
                     return True
-
-                # Otherwise build follow-ups for missing symptoms only
-                built = self.generate_follow_ups_from_rules(location, match)
-                if not built:
-                    self.follow_up_questions = self.follow_up_questions
-                    self.follow_up_keys = ["duration", "pattern", "associated", "additional", "severity"]
-                self.dialog_state = "collect_follow_up"
-                self.follow_up_index = 0
-                self.ai_reply("براہِ کرم مزید تفصیل بتائیں۔ " + self.follow_up_questions[self.follow_up_index])
-                self.follow_up_index += 1
-                return True
+                else:
+                    # Build targeted follow-ups for weaker matches
+                    built = self.generate_follow_ups_from_rules(location, match)
+                    if not built:
+                        self.follow_up_keys = ["duration", "pattern", "associated", "additional", "severity"]
+                    self.dialog_state = "collect_follow_up"
+                    self.follow_up_index = 0
+                    self.ai_reply("براہِ کرم مزید تفصیل بتائیں۔ " + self.follow_up_questions[self.follow_up_index])
+                    self.follow_up_index += 1
+                    return True
 
             self.dialog_state = "awaiting_body_part"
             self.ai_reply("آپ کے جسم کے کس حصے میں درد ہے؟")
@@ -423,21 +531,12 @@ class MedinovaKiosk:
         # Try to match rule now
         match = self.match_disease_rule()
         if match and match.get('score',0) >= 0.6:
-            self.patient_data['symptom'] = match['rule']['disease']
-            self.patient_data['specialist'] = match['rule'].get('specialist','')
-            self.finalize_triage()
-            summary = self.build_analysis_summary()
-            self.ai_reply(summary)
-            if self.urgency_level == 'GREEN':
-                self.dialog_state = 'idle'
-                self.conversation_started = False
-                return False
-            if self.urgency_level == 'YELLOW':
-                self.dialog_state = 'appointment_offer'
-                self.ai_reply("گھر پر دیکھ بھال آپ کے لئے مفید ہو سکتی ہے، اور میں آپ کو ڈاکٹر سے ملاقات بک کرنے کی بھی سفارش کرتا ہوں۔ کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
-                return True
-            self.dialog_state = 'appointment_offer'
-            self.ai_reply("یہ صورتحال شدید خطرے کی جانب اشارہ دیتی ہے، اور میں آپ کو فوری طور پر ڈاکٹر سے ملاقات بک کرنے کی سفارش کرتا ہوں۔ کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
+            # Generate disease-specific follow-ups
+            self.generate_follow_ups_from_rules(user_text, match)
+            self.dialog_state = "collect_follow_up"
+            self.follow_up_index = 0
+            self.ai_reply(self.follow_up_questions[self.follow_up_index])
+            self.follow_up_index += 1
             return True
 
         # Build targeted follow-ups based on the provided location and match
@@ -490,21 +589,26 @@ class MedinovaKiosk:
             self.follow_up_index += 1
             return True
 
-        # All follow-ups collected
-        self.dialog_state = "appointment_offer"
+        # All follow-ups collected - finalize triage and present analysis
         self.ai_reply("میں نے آپ کی تفصیل لے لی ہے۔ اب میں آپ کی صورتحال کا جائزہ لوں گا۔")
-        # finalize_triage will consider collected symptom answers
         self.finalize_triage()
         summary = self.build_analysis_summary()
         self.ai_reply(summary)
+        
+        # Based on urgency level, decide next action
         if self.urgency_level == "GREEN":
             self.dialog_state = "idle"
             self.conversation_started = False
             return False
+        
         if self.urgency_level == "YELLOW":
-            self.ai_reply("گھر پر دیکھ بھال آپ کے لئے مفید ہو سکتی ہے، اور میں آپ کو ڈاکٹر سے ملاقات بک کرنے کی بھی سفارش کرتا ہوں۔ کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
+            self.dialog_state = "appointment_offer"
+            self.ai_reply("کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
             return True
-        self.ai_reply("یہ صورتحال شدید خطرے کی جانب اشارہ دیتی ہے، اور میں آپ کو فوری طور پر ڈاکٹر سے ملاقات بک کرنے کی سفارش کرتا ہوں۔ کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
+        
+        # RED urgency
+        self.dialog_state = "appointment_offer"
+        self.ai_reply("کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
         return True
 
     def handle_appointment_response(self, user_text):
@@ -638,56 +742,30 @@ class MedinovaKiosk:
 
     def generate_follow_ups_from_rules(self, location, match=None):
         """Create targeted follow-up questions based on disease rules matching the given location.
-        If a `match` dict (from `match_disease_rule`) is provided, only ask about missing symptoms.
+        If a `match` dict (from `match_disease_rule`) is provided, use disease-specific questions.
         Returns True if any targeted questions were generated, False otherwise."""
-        loc = location.lower()
-        candidate_symptoms = []
-
-        if match and match.get('missing'):
-            # Use missing symptoms from the matched rule
-            candidate_symptoms = match['missing']
-            disease_name = match['rule'].get('disease','')
-        else:
-            # discover candidate symptoms by scanning rules for this location
-            for rule in self.disease_rules:
-                if loc in rule['disease'].lower() or loc in rule['symptoms'].lower():
-                    for s in rule['symptoms'].split('،'):
-                        sym = s.strip()
-                        if not sym: continue
-                        if loc in sym.lower():
-                            continue
-                        if sym not in candidate_symptoms:
-                            candidate_symptoms.append(sym)
-
-        # If still none found, try English mapping
-        if not candidate_symptoms:
-            eng_map = {"سر":"head","سینہ":"chest","پیٹ":"stomach","پیٹھ":"back","گردن":"neck","بازو":"arm","پیر":"leg"}
-            eng = eng_map.get(location, "")
-            if eng:
-                for rule in self.disease_rules:
-                    if eng in rule['disease'].lower() or eng in rule['symptoms'].lower():
-                        for s in rule['symptoms'].split('،'):
-                            sym = s.strip()
-                            if not sym: continue
-                            if sym not in candidate_symptoms:
-                                candidate_symptoms.append(sym)
-
-        if not candidate_symptoms:
-            return False
-
-        # Build question list: timing/pattern, then one question per missing symptom, then severity
-        questions = ["یہ درد کب شروع ہوا؟", "کیا درد مستقل ہے یا وقفے وقفے سے ہوتا ہے؟"]
-        keys = ["duration", "pattern"]
-        for i, sym in enumerate(candidate_symptoms):
-            q = f"کیا آپ کو {sym} محسوس ہو رہا ہے؟"
-            questions.append(q)
-            keys.append(f"sym_{i}")
-
-        questions.append("براہِ کرم بتائیں درد کی شدت کیا ہے؟ کم، درمیانہ، یا شدید؟")
-        keys.append("severity")
-
-        self.follow_up_questions = questions
-        self.follow_up_keys = keys
+        
+        if match and match.get('rule'):
+            disease_name = match['rule'].get('disease', '')
+            self.detected_disease = disease_name
+            
+            # Get disease category for specific follow-ups
+            category = self.get_disease_category(disease_name)
+            if category and category in self.disease_followups:
+                followup_set = self.disease_followups[category]
+                self.follow_up_questions = followup_set["questions"]
+                self.follow_up_keys = followup_set["keys"]
+                return True
+        
+        # Fallback to generic follow-ups
+        self.follow_up_questions = [
+            "یہ درد کب شروع ہوا؟",
+            "کیا درد مستقل ہے یا وقفے وقفے سے ہوتا ہے؟",
+            "کیا آپ کو بخار یا چکر محسوس ہو رہا ہے؟",
+            "کیا کوئی چیز اس درد کو بہتر یا خراب کرتی ہے؟",
+            "براہِ کرم بتائیں درد کی شدت کیا ہے؟ کم، درمیانہ، یا شدید؟"
+        ]
+        self.follow_up_keys = ["duration", "pattern", "associated", "improvement", "severity"]
         return True
 
 
@@ -697,11 +775,13 @@ class MedinovaKiosk:
             rule = matched.get('rule', matched)
             # set disease name from rule
             self.patient_data['symptom'] = rule.get('disease', self.patient_data.get('symptom',''))
+            self.detected_disease = rule.get('disease', '')
+            
             # Map backend urgency to internal levels
-            u = rule.get('urgency', '').strip().lower()
-            if u == 'critical':
+            u = rule.get('urgency', '').strip().upper()
+            if u == 'RED' or u == 'CRITICAL':
                 new_level = 'RED'
-            elif u == 'low':
+            elif u == 'GREEN' or u == 'LOW':
                 new_level = 'GREEN'
             else:
                 new_level = 'YELLOW'
@@ -722,6 +802,11 @@ class MedinovaKiosk:
     def build_analysis_summary(self):
         summary = []
         summary.append("میں نے آپ کی صورتحال کا مکمل جائزہ لے لیا ہے۔")
+        
+        # Mention the detected disease
+        if self.detected_disease:
+            summary.append(f"ممکنہ حالت: {self.detected_disease}")
+        
         if self.patient_data.get('location'):
             summary.append(f"درد کا مقام: {self.patient_data['location']}")
         if self.patient_data.get('duration'):
@@ -733,15 +818,20 @@ class MedinovaKiosk:
         if self.patient_data.get('additional'):
             summary.append(f"اضافی معلومات: {self.patient_data['additional']}")
 
+        # Only provide homecare for GREEN urgency
         if self.urgency_level == 'GREEN':
-            summary.append("آپ کی علامات کے مطابق یہ زیادہ خطرناک نہیں معلوم ہوتی۔")
+            summary.append("خطرے کی سطح: کم (سبز) - یہ شدید نہیں ہے۔")
             care_text = self.patient_data.get('care') or self.infer_green_home_care()
             summary.append(f"گھر پر دیکھ بھال: {care_text}")
             summary.append("اللہ حافظ۔")
         elif self.urgency_level == 'YELLOW':
-            summary.append("آپ کی علامات خطرناک سمت کی طرف جا رہی ہیں۔ گھر پر دیکھ بھال مفید ہو سکتی ہے، لیکن میں آپ کو ڈاکٹر سے ملاقات بک کرنے کی سفارش کرتا ہوں۔")
-        else:
-            summary.append("یہ صورتحال شدید خطرے کی جانب اشارہ دیتی ہے۔ میں آپ کو فوری طور پر ڈاکٹر سے ملاقات بک کرنے کی سفارش کرتا ہوں۔")
+            summary.append("خطرے کی سطح: درمیانی (زرد) - آپ کی علامات خطرناک سمت کی طرف جا سکتی ہیں۔")
+            summary.append("میں آپ کو ڈاکٹر سے ملاقات بک کرنے کی سفارش کرتا ہوں۔")
+        else:  # RED
+            summary.append("خطرے کی سطح: شدید (سرخ) - یہ صورتحال بہت خطرناک ہے۔")
+            summary.append("میں آپ کو فوری طور پر ڈاکٹر سے ملاقات بک کرنے کی سفارش کرتا ہوں۔")
+            if self.patient_data.get('specialist'):
+                summary.append(f"متخصص: {self.patient_data['specialist']}")
 
         return ' '.join(summary)
 
@@ -759,7 +849,7 @@ class MedinovaKiosk:
         best = None
         best_score = 0.0
         for rule in self.disease_rules:
-            # tokenize rule symptoms
+            # tokenize rule symptoms (Urdu)
             rule_symptoms = [s.strip() for s in rule.get('symptoms','').split('،') if s.strip()]
             if not rule_symptoms:
                 continue
@@ -782,6 +872,33 @@ class MedinovaKiosk:
                 }
 
         return best
+
+    def get_disease_category(self, disease_name):
+        """Get the category key for disease-specific follow-ups"""
+        name_lower = disease_name.lower()
+        if "dengue" in name_lower:
+            return "dengue"
+        elif "flu" in name_lower or "influenza" in name_lower:
+            return "flu"
+        elif "cold" in name_lower:
+            return "cold"
+        elif "allergy" in name_lower:
+            return "allergy"
+        elif "throat" in name_lower or "pharyngitis" in name_lower:
+            return "throat"
+        elif "cardiac" in name_lower or "heart" in name_lower or "ischemic" in name_lower:
+            return "cardiac"
+        elif "diabetes" in name_lower:
+            return "diabetes"
+        elif "stroke" in name_lower:
+            return "stroke"
+        elif "breathing" in name_lower:
+            return "breathing"
+        elif "orthopedic" in name_lower or "sprain" in name_lower or "joint" in name_lower:
+            return "orthopedic"
+        elif "food poisoning" in name_lower or "gastroenteritis" in name_lower:
+            return "food_poisoning"
+        return None
 
     def generate_downloadable_report(self):
         spec_map = {"headache": "Neurologist", "fever": "General physician", "chest": "Cardiologist", "stomach": "Gastroenterologist"}
