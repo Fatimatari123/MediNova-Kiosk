@@ -16,6 +16,7 @@ import wave
 import time
 import random
 from datetime import datetime
+import re
 from static_ffmpeg import add_paths
 
 # Add ffmpeg paths
@@ -77,7 +78,7 @@ class MedinovaKiosk:
         self.disease_followups = self.create_disease_followups()
         self.detected_disease = None  # Track detected disease
 
-        pygame.mixer.inpit()
+        pygame.mixer.init()
         self.setup_ui()
 
     def setup_ui(self):
@@ -159,36 +160,82 @@ class MedinovaKiosk:
         if not os.path.exists(file_path):
             return rules
         with open(file_path, "r", encoding="utf-8") as f:
-            for line in f:
+            content = f.read()
+
+        # Split into blocks separated by one or more blank lines.
+        blocks = [block.strip() for block in re.split(r"\n\s*\n+", content) if block.strip()]
+        for block in blocks:
+            if block.startswith("#"):
+                continue
+            # If block contains pipe-delimited lines, preserve old format behaviour.
+            if "|" in block and not block.lower().startswith("condition:"):
+                for line in block.splitlines():
+                    line = line.strip()
+                    if not line or line.startswith("#"): continue
+                    parts = [part.strip() for part in line.split("|")]
+                    if len(parts) >= 6:
+                        rules.append({
+                            "disease": parts[0],
+                            "keywords": parts[1],
+                            "symptoms": parts[2],
+                            "urgency": parts[3],
+                            "specialist": parts[4],
+                            "care": parts[5]
+                        })
+                    elif len(parts) >= 4:
+                        urgency = parts[2].strip().lower()
+                        rules.append({
+                            "disease": parts[0],
+                            "keywords": "",
+                            "symptoms": parts[1],
+                            "urgency": urgency if urgency in ['red', 'yellow', 'green'] else ('CRITICAL' if urgency == 'critical' else 'LOW'),
+                            "specialist": parts[3] if len(parts) > 3 else "",
+                            "care": parts[4] if len(parts) > 4 else ""
+                        })
+                continue
+
+            fields = {}
+            for line in block.splitlines():
                 line = line.strip()
                 if not line or line.startswith("#"): continue
-                parts = [part.strip() for part in line.split("|")]
-                # New format: Disease | Keywords | Symptoms | Urgency | Specialist | Care
-                if len(parts) >= 6:
-                    rules.append({
-                        "disease": parts[0],
-                        "keywords": parts[1],
-                        "symptoms": parts[2],
-                        "urgency": parts[3],
-                        "specialist": parts[4],
-                        "care": parts[5]
-                    })
-                elif len(parts) >= 4:
-                    # Fallback for older format
-                    urgency = parts[2].strip().lower()
-                    rules.append({
-                        "disease": parts[0],
-                        "keywords": "",
-                        "symptoms": parts[1],
-                        "urgency": urgency if urgency in ['red', 'yellow', 'green'] else ('CRITICAL' if urgency == 'critical' else 'LOW'),
-                        "specialist": parts[3] if len(parts) > 3 else "",
-                        "care": parts[4] if len(parts) > 4 else ""
-                    })
+                if ":" not in line:
+                    continue
+                key, value = [part.strip() for part in line.split(":", 1)]
+                fields[key.lower()] = value
+
+            if "condition" not in fields:
+                continue
+
+            disease = fields.get("condition", "").strip()
+            keywords = fields.get("spoken roman urdu keywords", "").strip()
+            symptoms = fields.get("common symptoms", "").strip()
+            urgency = fields.get("urgency", "").strip().upper()
+            specialist = fields.get("specialist", "").strip()
+            care = fields.get("home care", "").strip()
+
+            if urgency not in ["RED", "YELLOW", "GREEN"]:
+                urgency = urgency.lower()
+                urgency = "RED" if urgency == "critical" else ("GREEN" if urgency == "low" else ("YELLOW" if urgency == "yellow" else urgency.upper()))
+
+            rules.append({
+                "disease": disease,
+                "keywords": keywords,
+                "symptoms": symptoms,
+                "urgency": urgency,
+                "specialist": specialist,
+                "care": care
+            })
         return rules
 
     def create_disease_followups(self):
-        """Create disease-specific follow-up questions"""
-        return {
+        """Create disease-specific follow-up questions.
+        Build dynamic follow-ups from `self.disease_rules` file and merge with
+        a small set of curated category templates. This ensures each disease
+        can have tailored follow-ups derived from the symptoms listed in the
+        rules text file (so updating the file updates follow-ups).
+        """
+        # Start with curated templates for broad categories
+        templates = {
             "dengue": {
                 "questions": [
                     "یہ بخار کب شروع ہوا؟",
@@ -198,108 +245,60 @@ class MedinovaKiosk:
                     "براہِ کرم بتائیں، بخار کتنا شدید ہے؟"
                 ],
                 "keys": ["duration", "body_pain", "eye_pain", "rash", "severity"]
-            },
-            "flu": {
-                "questions": [
-                    "یہ علامات کب شروع ہوئیں؟",
-                    "کیا آپ کو کھانسی آ رہی ہے؟",
-                    "کیا جسم میں ٹوٹن محسوس ہو رہی ہے؟",
-                    "کیا آپ کو تھکاوٹ ہے؟",
-                    "براہِ کرم شدت بتائیں - کم، درمیانہ یا شدید؟"
-                ],
-                "keys": ["duration", "cough", "body_ache", "fatigue", "severity"]
-            },
-            "cold": {
-                "questions": [
-                    "یہ سردی کب شروع ہوئی؟",
-                    "کیا آپ کا ناک بہہ رہا ہے؟",
-                    "کیا آپ کو کھانسی آ رہی ہے؟",
-                    "کیا گلا خراب ہے؟",
-                    "براہِ کرم شدت بتائیں - کم، درمیانہ یا شدید؟"
-                ],
-                "keys": ["duration", "runny_nose", "cough", "sore_throat", "severity"]
-            },
-            "allergy": {
-                "questions": [
-                    "یہ الرجی علامات کب شروع ہوئیں؟",
-                    "کیا آپ کو خجلی ہو رہی ہے؟",
-                    "کیا آپ کو آنکھوں میں خراش محسوس ہو رہی ہے؟",
-                    "کیا آپ کو کوئی معلوم الرجن ہے؟",
-                    "براہِ کرم شدت بتائیں - کم، درمیانہ یا شدید؟"
-                ],
-                "keys": ["duration", "itching", "eye_irritation", "allergen", "severity"]
-            },
-            "throat": {
-                "questions": [
-                    "یہ گلے میں درد کب شروع ہوا؟",
-                    "کیا تھوک نگلنے میں درد ہے؟",
-                    "کیا آپ کو بخار ہے؟",
-                    "کیا آپ کو کھانسی آ رہی ہے؟",
-                    "براہِ کرم شدت بتائیں - کم، درمیانہ یا شدید؟"
-                ],
-                "keys": ["duration", "swallowing_pain", "fever", "cough", "severity"]
-            },
-            "cardiac": {
-                "questions": [
-                    "یہ سینے میں درد کب شروع ہوا؟",
-                    "کیا درد الٹے بازو میں بھی ہے؟",
-                    "کیا آپ کو سانس لینے میں دشواری ہے؟",
-                    "کیا آپ کو چکر آ رہے ہیں؟",
-                    "براہِ کرم بتائیں - کیا آپ کو پسینہ آ رہا ہے؟"
-                ],
-                "keys": ["duration", "left_arm", "breathing", "dizziness", "sweating"]
-            },
-            "diabetes": {
-                "questions": [
-                    "یہ علامات کتنے عرصے سے ہیں؟",
-                    "کیا آپ کو بہت زیادہ پیاس لگتی ہے؟",
-                    "کیا آپ کو بار بار پیشاب آتا ہے؟",
-                    "کیا آپ کو ہمیشہ تھکاوٹ محسوس ہوتی ہے؟",
-                    "براہِ کرم بتائیں - کیا آپ کے خاندار میں کوئی ذیابیطس کا مریض ہے؟"
-                ],
-                "keys": ["duration", "excessive_thirst", "frequent_urination", "fatigue", "family_history"]
-            },
-            "stroke": {
-                "questions": [
-                    "یہ علامات اچانک شروع ہوئیں؟",
-                    "کیا آپ کے منہ میں ٹیڑھاپن ہے؟",
-                    "کیا آپ کی زبان لڑکھڑا رہی ہے؟",
-                    "کیا آپ کے ہاتھ پیر سن ہیں؟",
-                    "کیا آپ کو بات کرنے میں مشکل ہو رہی ہے؟"
-                ],
-                "keys": ["sudden_onset", "facial_droop", "slurred_speech", "numbness", "speech_difficulty"]
-            },
-            "breathing": {
-                "questions": [
-                    "یہ سانس لینے میں دشواری کب شروع ہوئی؟",
-                    "کیا آپ کو سینے میں جکڑن محسوس ہو رہی ہے؟",
-                    "کیا سانس پھولنے میں سیٹی جیسی آواز آ رہی ہے؟",
-                    "کیا آپ کو سانس لینے میں بہت زیادہ تکلیف ہو رہی ہے؟",
-                    "براہِ کرم بتائیں - کیا یہ پہلے ہو چکا ہے؟"
-                ],
-                "keys": ["onset", "chest_tightness", "wheezing", "difficulty_level", "previous"]
-            },
-            "orthopedic": {
-                "questions": [
-                    "یہ درد کب شروع ہوا؟",
-                    "کیا اس جگہ سوجن ہے؟",
-                    "کیا آپ اس حصے کو حرکت دے سکتے ہیں؟",
-                    "کیا درد مستقل ہے یا وقفے وقفے سے ہے؟",
-                    "براہِ کرم شدت بتائیں - کم، درمیانہ یا شدید؟"
-                ],
-                "keys": ["duration", "swelling", "movement", "constant", "severity"]
-            },
-            "food_poisoning": {
-                "questions": [
-                    "یہ علامات کب شروع ہوئیں؟",
-                    "کیا آپ کو الٹیاں آ رہی ہیں؟",
-                    "کیا آپ کو پیٹ میں شدید درد ہے؟",
-                    "کیا آپ کو دست آئے ہیں؟",
-                    "براہِ کرم بتائیں - کیا آپ کو حالیہ میں کوئی خراب کھانا کھایا ہے؟"
-                ],
-                "keys": ["duration", "vomiting", "pain", "diarrhea", "food_history"]
             }
         }
+
+        # Build dynamic followups from rules file
+        dynamic = self.build_followups_from_rules()
+
+        # merge: dynamic entries override templates when available
+        for k, v in dynamic.items():
+            templates[k] = v
+
+        return templates
+
+    def build_followups_from_rules(self):
+        """Generate follow-up question sets from loaded disease rules.
+        For each rule, create a 4-6 question set: onset, symptom checks,
+        severity, and any rule-specific items. Returns a dict keyed by
+        normalized disease name.
+        """
+        out = {}
+        for rule in self.disease_rules:
+            name = rule.get('disease', '').strip()
+            if not name: continue
+            key = name.lower()
+            # extract symptom phrases (Urdu) split by punctuation
+            symptoms_field = rule.get('symptoms', '')
+            # split on Urdu comma and English comma
+            phrases = [s.strip() for s in re.split('[,،]', symptoms_field) if s.strip()]
+            questions = []
+            keys = []
+
+            # onset question
+            questions.append("یہ علامات کب شروع ہوئیں؟")
+            keys.append("duration")
+
+            # for first 3 symptom keywords, ask targeted yes/no questions
+            for i, ph in enumerate(phrases[:3]):
+                q = f"کیا آپ کو {ph} محسوس ہو رہا/رہی ہے؟"
+                # normalize key: replace non-word characters with underscore
+                k = re.sub(r"[^\w]+", "_", ph)
+                k = k.strip().lower()[:20] or f"sym_{i}"
+                questions.append(q)
+                keys.append(k)
+
+            # severity question
+            questions.append("براہِ کرم شدت بتائیں - کم، درمیانہ یا شدید؟")
+            keys.append("severity")
+
+            # offer a catch-all extra info question
+            questions.append("کیا آپ کے پاس اس بارے میں کوئی اضافی معلومات ہے؟")
+            keys.append("additional")
+
+            out[key] = {"questions": questions, "keys": keys}
+
+        return out
 
 
     def tokenize(self, text):
@@ -750,6 +749,14 @@ class MedinovaKiosk:
             self.detected_disease = disease_name
             
             # Get disease category for specific follow-ups
+            # prefer exact rule name match (normalized), then category
+            norm_name = disease_name.strip().lower()
+            if norm_name in self.disease_followups:
+                followup_set = self.disease_followups[norm_name]
+                self.follow_up_questions = followup_set["questions"]
+                self.follow_up_keys = followup_set["keys"]
+                return True
+
             category = self.get_disease_category(disease_name)
             if category and category in self.disease_followups:
                 followup_set = self.disease_followups[category]
@@ -826,6 +833,8 @@ class MedinovaKiosk:
             summary.append("اللہ حافظ۔")
         elif self.urgency_level == 'YELLOW':
             summary.append("خطرے کی سطح: درمیانی (زرد) - آپ کی علامات خطرناک سمت کی طرف جا سکتی ہیں۔")
+            care_text = self.patient_data.get('care') or self.infer_green_home_care()
+            summary.append(f"گھر پر دیکھ بھال: {care_text}")
             summary.append("میں آپ کو ڈاکٹر سے ملاقات بک کرنے کی سفارش کرتا ہوں۔")
         else:  # RED
             summary.append("خطرے کی سطح: شدید (سرخ) - یہ صورتحال بہت خطرناک ہے۔")
@@ -857,11 +866,35 @@ class MedinovaKiosk:
             for s in rule_symptoms:
                 rule_tokens.update(self.tokenize(s))
 
+            # Also consider English/keyword column and disease name so English inputs match
+            keywords_field = rule.get('keywords', '') or ''
+            if keywords_field:
+                # split on commas and whitespace
+                kparts = [p.strip() for p in re.split('[,؛،]', keywords_field) if p.strip()]
+                for kp in kparts:
+                    rule_tokens.update(self.tokenize(kp))
+
+            # include disease name tokens (helps when user says disease in English)
+            rule_tokens.update(self.tokenize(rule.get('disease', '')))
+
             if not rule_tokens:
                 continue
 
             matched = patient_tokens.intersection(rule_tokens)
             score = len(matched) / max(len(rule_tokens), 1)
+
+            # Boost score if body-part/location tokens align (Urdu priority)
+            body_parts = set(["سر", "سینہ", "پیٹ", "پیر", "بازو", "کمر", "گردن", "پیٹھ", "دائیں", "بائیں", "بازو"])
+            # tokens for patient's stated location (if any)
+            loc_tokens = self.tokenize(self.patient_data.get('location', ''))
+            # check for overlap with rule text (full symptoms string)
+            rule_text = ' '.join([rule.get('symptoms',''), rule.get('disease',''), rule.get('keywords','')])
+            rule_text_tokens = self.tokenize(rule_text)
+
+            if patient_tokens & body_parts:
+                # if rule also mentions body part tokens, boost
+                if (patient_tokens & rule_text_tokens) or (loc_tokens & rule_text_tokens):
+                    score = score * 1.6
             if score > best_score:
                 best_score = score
                 best = {
