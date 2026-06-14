@@ -1,35 +1,258 @@
-# Medinova Medical Rules Database - Comprehensive Disease Reference
-# Format: Disease | Keywords | Symptoms (Urdu) | Urgency (RED/YELLOW/GREEN) | Specialist | Home Care
+# Medinova Medical Rules Database - Heading-based Reference
+# Keep CONDITION, Specialist, and Urgency in English. Use Urdu for other field content.
 
-Possible Dengue | Tez bukhar, jism me dard, sar me dard, aankhon k peeche dard, haddiyon me dard, daane | تیز بخار، جسم میں درد، سر میں درد، آنکھوں کے پیچھے درد، ہڈیوں میں درد، دانے | RED | General Physician / Infectious Disease | آرام کریں، پانی خوب پیئں، اپنے آپ کو دوا دینے سے بچیں، بخار پر نگاہ رکھیں
-Possible Flu | Bukhar, khansi, jism toot raha hai, thakawat, nazla, zukam | بخار، کھانسی، جسم ٹوٹ رہا ہے، تھکاوٹ، نزلہ، زکام | YELLOW | General Physician | آرام کریں، سیال، گرم مشروبات
-Possible Diabetes Risk | Boht zayada pyaas, baar baar peshab ana, har waqt thakawat, kamzori | بہت زیادہ پیاس، بار بار پیشاب آنا، ہر وقت تھکاوٹ، کمزوری | YELLOW | Endocrinologist | شوگر کم کریں، ڈاکٹر سے ٹیسٹ کی مشورہ لیں
-Possible Cardiac Issue | Seene me dard, ulte baazu me dard, chakkar, paseena ana, dil me dabaao | سینے میں درد، الٹے بازو میں درد، چکر، پسینہ آنا، دل میں دباؤ | RED | Emergency / Cardiologist | فوری طور پر ہنگامی مدد حاصل کریں
-Possible Orthopedic Issue | Jorhon me dard, soojan, haddiyon me dard, jism me akran | جوڑوں میں درد، سوجن، ہڈیوں میں درد، جسم میں اکٹھاپن | YELLOW | Orthopedic Doctor | آرام کریں، دباؤ سے بچیں، گرم سیکی کریں
-Possible Allergy | Cheenkein, khujli, khariwsh, aankhon se pani ana | چھینکیں، خجلی، خراش، آنکھوں سے پانی آنا | GREEN | General Physician | الرجن سے دوری رکھیں، ڈاکٹر کے مشورے سے اینٹی ہسٹامین لیں
-Mild Viral Infection | Halka bukhar, thori si thakawat, hararat | ہلکا بخار، تھوڑی سی تھکاوٹ، حرارت | GREEN | General Physician | آرام کریں، پانی
-Common Cold | Naak behna, cheenkein, halki khansi, gala kharab, naak band | ناک بہنا، چھینکیں، ہلکی کھانسی، گلا خراب، ناک بند | GREEN | General Physician / Pharmacist | آرام کریں، سیال، گرم مشروبات، مناسب نیند
-Mild Food Poisoning | Ulti ana, matli, dast, loose motions, pait me maror | الٹی آنا، متلی، دست، لوز موشنز، پیٹ میں مروڑ | YELLOW | General Physician | منہ سے پانی دینا، خفیف غذا، آرام
-Heat Exhaustion | Boht zayada paseena, kamzori, chakkar, sar dard, garmi lagna | بہت زیادہ پسینہ، کمزوری، چکر، سر درد، گرمی لگنا | YELLOW | General Physician | ٹھنڈی جگہ پر جائیں، فوری طور پر ہائڈریٹ کریں، آرام کریں
-Severe Breathing Difficulty | Saans lene me takleef, saans phoolna, seene me ghutan, saans nahi aa rahi | سانس لینے میں تکلیف، سانس پھولنا، سینے میں گھٹن، سانس نہیں آ رہی | RED | Emergency Department | فوری طور پر ہنگامی طبی امداد حاصل کریں
-Possible Stroke | Achanak kamzori, muh tera hona, zaban larkharana, hath pair sunn hona | اچانک کمزوری، منہ ٹیڑھا ہونا، زبان لڑکھڑانا، ہاتھ پیر سن ہونا | RED | Emergency Department / Neurologist | فوری طور پر ہنگامی خدمات کو کال کریں
-Possible Throat Infection (Pharyngitis) | Gala kharab, thook nigalne me dard, halka bukhar, gale me dard | گلا خراب، تھوک نگلنے میں درد، ہلکا بخار، گلے میں درد | GREEN | General Physician / ENT | نمکین پانی سے کلی کریں، سیال، آرام
-Possible Gastroenteritis | Dast ana, ultiyan, pait me dard, kamzoli | دست آنا، الٹیاں، پیٹ میں درد، کمزوری | YELLOW | General Physician | ہائڈریشن، ہلکی غذا، اورل ری ہائڈریشن سالٹس
-Possible Migraine | Shadeed sar dard, aadhe sar me dard, matli, roshni se masla | شدید سر درد، آدھے سر میں درد، متلی، روشنی سے مسئلہ | YELLOW | Neurologist / General Physician | اندھیری کمرے میں آرام کریں، ہائڈریشن، دباؤ سے بچیں
-Possible Sinusitis | Chehre me dard, naak band, sar me dabaao | چہرے میں درد، ناک بند، سر میں دباؤ | YELLOW | ENT Specialist | بھاپ لیں، گرم سیال، آرام
-Dental Issue | Daant me dard, masooron me soojan, thanda garam lagna | دانت میں درد، مسوڑوں میں سوجن، ٹھنڈا گرم لگنا | GREEN | Dentist | سردو گرم غذا سے بچیں، منہ کی صفائی
-Muscle Sprain / Minor Injury | Moch ana, soojan, hath pair me dard, hilane me dard | موچ آنا، سوجن، ہاتھ پیر میں درد، ہلانے میں درد | GREEN | Orthopedic Doctor | آرام کریں، برف لگائیں، اونچا رکھیں
-Possible Dehydration | Khushk muh, chakkar ana, kamzoli, peela peshab | خشک منہ، چکر آنا، کمزوری، پیلا پیشاب | YELLOW | General Physician | ORS، پانی، آرام
-Ischemic Heart Disease | Saans phoolna, seene me bechaini, har waqt thakawat | سانس پھولنا، سینے میں بے چینی، ہر وقت تھکاوٹ | RED | Cardiologist | متوازن غذا، ورزش، تمباکو اور الکوحل سے بچیں
-Hypertension (High Blood Pressure) | Blood pressure tez, sar me bhari-pan, saans phoolna | بلڈ پریشر تیز، سر میں بھاری پن، سانس پھولنا | YELLOW | Cardiologist or Primary Care Physician | کم نمک، ورزش، تمباکو اور الکوحل سے بچیں
-Asthma | Dama, saans ki takleef, khansi, seene me ceti ki awaz | دمہ، سانس کی تکلیف، کھانسی، سینے میں سیٹی کی آواز | YELLOW | Pulmonologist or Allergist | ٹریگرز سے بچیں، انہیلر استعمال کریں
-Cholera | Shadeed dast, boht ultiyan, pait saaf pani jesa bahna | شدید دست، بہت الٹیاں، پیٹ صاف پانی جیسا بہنا | YELLOW | Infectious Disease Specialist | ORS، محفوظ پانی
-Multiple Sclerosis (MS) | Zehan kam nahi karta, yaaddasht ka masla, jism hilane me takleef, kamzoli | دماغ کام نہیں کرتا، یادداشت کا مسئلہ، جسم ہلانے میں تکلیف، کمزوری | YELLOW | Neurologist | وٹامن D، سرگرمی کا انتظام
-Dysthymia | Udaasi, har waqt mood kharab, susti, zehan hazir na hona | اداسی، ہر وقت موڈ خراب، سستی، دماغ حاضر نہ ہونا | YELLOW | Psychiatrist or Psychologist | تھیراپی، طرز زندگی میں تبدیلی
-Epilepsy | Mirgi k daure, jhatke lagna, behoshi, zehni jhatka | مرگی کے دورے، جھٹکے لگنا، بے ہوشی، ذہنی جھٹکا | YELLOW | Neurologist | ادویات کی پابندی، دباؤ کنٹرول
-Graves' Disease | Gala soojna, gland ka masla, jazbaati tabdeeli, gussa ana | گلا سوجنا، گلینڈ کا مسئلہ، جذباتی تبدیلی، غصہ آنا | YELLOW | Endocrinologist | طبی نگرانی، مراقبت
-Measles | Khasra, jism par laal daane, tez bukhar, nazla khansi | خسرہ، جسم پر لال دانے، تیز بخار، نزلہ کھانسی | YELLOW | Pediatrician or Primary Care Physician | علیحدگی، صفائی
-Strep Throat | Gale ka infection, shadeed khansi, bukhar, gale me pips | گلے کا انفیکشن، شدید کھانسی، بخار، گلے میں پپ | YELLOW | Primary Care Physician | چیزیں شیئر کرنے سے بچیں، صفائی
-Kidney Diseases | Gurdon ka masla, har waqt thakawat, saans phoolna, peshab me takleef | گردوں کا مسئلہ، ہر وقت تھکاوٹ، سانس پھولنا، پیشاب میں تکلیف | YELLOW | Nephrologist | غذا کنٹرول، بی پی کا انتظام
-Parkinson's Disease | Haath kaanpna, raasha, chalne me mushkil, bhool jana | ہاتھ کانپنا، راشا، چلنے میں مشکل، بھول جانا | YELLOW | Neurologist | ورزش، مراقبت
-Anorexia Nervosa | Bhook na lagna, khana na khana, boht zayada wazan kam hona, kamzoli | بھوک نہ لگنا، کھانا نہ کھانا، بہت زیادہ وزن کم ہونا، کمزوری | YELLOW | Psychiatrist or Psychologist | غذائی + نفسیاتی معاونت
+CONDITION: Possible Dengue
+Spoken Roman Urdu Keywords: Tez bukhar, جسم میں درد, سر میں درد, آنکھوں کے پیچھے درد, ہڈیوں میں درد, دانے
+Common Symptoms: بخار، جسم میں درد، سر میں درد، آنکھوں میں درد، ہڈیوں میں درد
+Duration: 2–7 دن
+Home Care: آرام کریں، پانی پیئیں، خود سے دوا نہ لیں، بخار کو چیک کریں
+Specialist: General Physician / Infectious Disease
+Urgency: RED
+
+CONDITION: Possible Flu
+Spoken Roman Urdu Keywords: Bukhar, بخار, khansi, کھانسی, جسم ٹوٹ رہا ہے, تھکاوٹ, nazla, نزلہ, zukam, زکام
+Common Symptoms: بخار، کھانسی، جسم کا درد، تھکاوٹ
+Duration: 3–5 دن
+Home Care: آرام کریں، مائع لیں، گرم مشروبات پیئیں
+Specialist: General Physician
+Urgency: YELLOW
+
+CONDITION: Possible Diabetes Risk
+Spoken Roman Urdu Keywords: Boht zayada pyaas, بہت زیادہ پیاس, بار بار پیشاب آنا, har waqt thakawat, ہر وقت تھکاوٹ, kamzori, کمزوری
+Common Symptoms: بہت زیادہ پیاس، بار بار پیشاب آنا، تھکاوٹ
+Duration: طویل مدتی مرض
+Home Care: شوگر کم کریں، ڈاکٹر سے ٹیسٹ کا مشورہ لیں
+Specialist: Endocrinologist
+Urgency: YELLOW
+
+CONDITION: Possible Cardiac Issue
+Spoken Roman Urdu Keywords: Seene me dard, سینے میں درد, ulte baazu me dard, الٹے بازو میں درد, chakkar, چکر, paseena ana, پسینہ آنا, dil me dabaao, دل میں دباؤ
+Common Symptoms: سینے میں درد، بائیں بازو میں درد، چکر، پسینہ
+Duration: فوری توجہ درکار
+Home Care: تاخیر نہ کریں، فوری ایمرجنسی مدد حاصل کریں
+Specialist: Emergency / Cardiologist
+Urgency: RED
+
+CONDITION: Possible Orthopedic Issue
+Spoken Roman Urdu Keywords: Jorhon me dard, جوڑوں میں درد, soojan, سوجن, haddiyon me dard, ہڈیوں میں درد, jism me akran, جسم میں اکٹھاپن
+Common Symptoms: جوڑوں میں درد، سوجن، ہڈیوں میں درد، اکڑن
+Duration: تیز یا دائمی ہو سکتا ہے
+Home Care: آرام کریں، دباؤ سے بچیں، گرم کمپریس کریں
+Specialist: Orthopedic Doctor
+Urgency: YELLOW
+
+CONDITION: Possible Allergy
+Spoken Roman Urdu Keywords: Cheenkein, چھینکیں, khujli, خجلی, khariwsh, خراش, aankhon se pani ana, آنکھوں سے پانی آنا
+Common Symptoms: چھینکیں، خارش، آنکھوں کا پانی آنا
+Duration: چند گھنٹے سے دن
+Home Care: الرجی سے بچیں، ڈاکٹر کی ہدایت کے مطابق اینٹی ہسٹامین لیں
+Specialist: General Physician
+Urgency: GREEN
+
+CONDITION: Mild Viral Infection
+Spoken Roman Urdu Keywords: Halka bukhar, ہلکا بخار, thori si thakawat, تھوڑی سی تھکاوٹ, hararat, حرارت
+Common Symptoms: ہلکا بخار، تھکاوٹ
+Duration: 1–3 دن
+Home Care: آرام کریں، پانی پیئیں
+Specialist: General Physician
+Urgency: GREEN
+
+CONDITION: Common Cold
+Spoken Roman Urdu Keywords: Naak behna, ناک بہنا, cheenkein, چھینکیں, halki khansi, ہلکی کھانسی, gala kharab, گلا خراب, naak band, ناک بند
+Common Symptoms: ناک بہنا، چھینکیں، خراشِ گلا، ہلکی کھانسی
+Duration: 7–10 دن
+Home Care: آرام کریں، مائع لیں، گرم مشروبات، مناسب نیند
+Specialist: General Physician / Pharmacist
+Urgency: GREEN
+
+CONDITION: Mild Food Poisoning
+Spoken Roman Urdu Keywords: Ulti ana, الٹی آنا, matli, متلی, dast, دست, loose motions, لوز موشنز, pait me maror, پیٹ میں مروڑ
+Common Symptoms: قے، دست، پیٹ میں درد، کمزوری
+Duration: 1–3 دن
+Home Care: منہ سے پانی دیں، ہلکی غذا، آرام
+Specialist: General Physician
+Urgency: YELLOW
+
+CONDITION: Heat Exhaustion
+Spoken Roman Urdu Keywords: Boht zayada paseena, بہت زیادہ پسینہ, kamzori, کمزوری, chakkar, چکر, sar dard, سر درد, garmi lagna, گرمی لگنا
+Common Symptoms: زیادہ پسینہ، کمزوری، چکر، سر درد
+Duration: چند گھنٹے سے 1 دن
+Home Care: ٹھنڈی جگہ پر جائیں، فوراً پانی پیئیں، آرام کریں
+Specialist: General Physician
+Urgency: YELLOW
+
+CONDITION: Severe Breathing Difficulty
+Spoken Roman Urdu Keywords: Saans lene me takleef, سانس لینے میں تکلیف, saans phoolna, سانس پھولنا, seene me ghutan, سینے میں گھٹن, saans nahi aa rahi, سانس نہیں آ رہی
+Common Symptoms: سانس لینے میں دشواری، سینے میں تنگی، سُسکی
+Duration: فوری توجہ درکار
+Home Care: فوری طور پر ایمرجنسی طبی مدد طلب کریں
+Specialist: Emergency Department
+Urgency: RED
+
+CONDITION: Possible Stroke
+Spoken Roman Urdu Keywords: Achanak kamzori, اچانک کمزوری, muh tera hona, منہ ٹیڑھا ہونا, zaban larkharana, زبان لڑکھڑانا, hath pair sunn hona, ہاتھ پیر سن ہونا
+Common Symptoms: اچانک کمزوری، چہرے کا جھکاؤ، دُھندلی بات
+Duration: ایمرجنسی
+Home Care: فوری طور پر ہنگامی خدمات کو کال کریں
+Specialist: Emergency Department / Neurologist
+Urgency: RED
+
+CONDITION: Possible Throat Infection (Pharyngitis)
+Spoken Roman Urdu Keywords: Gala kharab, گلا خراب, thook nigalne me dard, تھوک نگلنے میں درد, halka bukhar, ہلکا بخار, gale me dard, گلے میں درد
+Common Symptoms: گلے میں درد، نگلنے میں تکلیف، ہلکا بخار
+Duration: 3–5 دن
+Home Care: نمکین پانی سے کلی کریں، مائع لیں، آرام کریں
+Specialist: General Physician / ENT
+Urgency: GREEN
+
+CONDITION: Possible Gastroenteritis
+Spoken Roman Urdu Keywords: Dast ana, دست آنا, ultiyan, الٹیاں, pait me dard, پیٹ میں درد, kamzori, کمزوری
+Common Symptoms: اسہال، قے، پیٹ میں درد، کمزوری
+Duration: 2–5 دن
+Home Care: مائع، ہلکی غذا، اورل ری ہائڈریشن سالٹ
+Specialist: General Physician
+Urgency: YELLOW
+
+CONDITION: Possible Migraine
+Spoken Roman Urdu Keywords: Shadeed sar dard, شدید سر درد, aadhe sar me dard, آدھے سر میں درد, matli, متلی, roshni se masla, روشنی سے مسئلہ
+Common Symptoms: شدید سر درد، متلی، روشنی سے حساسیت
+Duration: چند گھنٹے سے 2–3 دن
+Home Care: اندھیرا کمرا، پانی، تناؤ سے پرہیز
+Specialist: Neurologist / General Physician
+Urgency: YELLOW
+
+CONDITION: Possible Sinusitis
+Spoken Roman Urdu Keywords: Chehre me dard, چہرے میں درد, naak band, ناک بند, sar me dabaao, سر میں دباؤ
+Common Symptoms: چہرے میں درد، ناک کی بندش، سر کا دباؤ
+Duration: 7–14 دن
+Home Care: بھاپ لیں، گرم مائعات لیں، آرام کریں
+Specialist: ENT Specialist
+Urgency: YELLOW
+
+CONDITION: Dental Issue
+Spoken Roman Urdu Keywords: Daant me dard, دانت میں درد, masooron me soojan, مسوڑوں میں سوجن, thanda garam lagna, ٹھنڈا گرم لگنا
+Common Symptoms: دانت کا درد، مسوڑھوں کی سوجن، حساسیت
+Duration: جب تک علاج نہ ہو
+Home Care: سردوگرم کھانے سے پرہیز کریں، منہ کی صفائی کریں
+Specialist: Dentist
+Urgency: GREEN
+
+CONDITION: Muscle Sprain / Minor Injury
+Spoken Roman Urdu Keywords: Moch ana, موچ آنا, soojan, سوجن, hath pair me dard, ہاتھ پیر میں درد, hilane me dard, ہلانے میں درد
+Common Symptoms: درد، سوجن، حرکت میں مشکل
+Duration: 3–10 دن
+Home Care: آرام کریں، برف لگائیں، اونچا رکھیں
+Specialist: Orthopedic Doctor
+Urgency: GREEN
+
+CONDITION: Possible Dehydration
+Spoken Roman Urdu Keywords: Khushk muh, خشک منہ, chakkar ana, چکر آنا, kamzori, کمزوری, peela peshab, پیلا پیشاب
+Common Symptoms: خشک منہ، چکر، کمزوری، پیشاب کا رنگ
+Duration: فوری درستگی درکار
+Home Care: ORS، پانی، آرام
+Specialist: General Physician
+Urgency: YELLOW
+
+CONDITION: Ischemic Heart Disease
+Spoken Roman Urdu Keywords: Saans phoolna, سانس پھولنا, seene me bechaini, سینے میں بے چینی, har waqt thakawat, ہر وقت تھکاوٹ
+Common Symptoms: سانس پھولنا، سینے میں بے چینی، ہمیشہ تھکاوٹ
+Duration: دائمی اور طویل مدتی
+Home Care: متوازن غذا، ورزش، تمباکو اور الکوحل سے پرہیز
+Specialist: Cardiologist
+Urgency: RED
+
+CONDITION: Hypertension (High Blood Pressure)
+Spoken Roman Urdu Keywords: Blood pressure tez, بلڈ پریشر تیز, sar me bhari-pan, سر میں بھاری پن, saans phoolna, سانس پھولنا
+Common Symptoms: سر درد، سانس کا پھولنا، high blood pressure علامات
+Duration: دائمی
+Home Care: کم نمک، ورزش، تمباکو اور الکوحل سے پرہیز
+Specialist: Cardiologist or Primary Care Physician
+Urgency: YELLOW
+
+CONDITION: Asthma
+Spoken Roman Urdu Keywords: Dama, دمہ, saans ki takleef, سانس کی تکلیف, khansi, کھانسی, seene me ceti ki awaz, سینے میں سیٹی کی آواز
+Common Symptoms: سانس کی قلت، کھانسی، سینے میں تناؤ
+Duration: دائمی
+Home Care: محرکات سے بچیں، انہیلر استعمال کریں
+Specialist: Pulmonologist or Allergist
+Urgency: YELLOW
+
+CONDITION: Cholera
+Spoken Roman Urdu Keywords: Shadeed dast, شدید دست, boht ultiyan, بہت الٹیاں, pait saaf pani jesa bahna, پیٹ صاف پانی جیسا بہنا
+Common Symptoms: شدید اسہال، قے، پانی جیسا پاخانہ
+Duration: 3–7 دن
+Home Care: ORS، محفوظ پانی
+Specialist: Infectious Disease Specialist
+Urgency: YELLOW
+
+CONDITION: Multiple Sclerosis (MS)
+Spoken Roman Urdu Keywords: Zehan kam nahi karta, ذہن کام نہیں کرتا, yaaddasht ka masla, یادداشت کا مسئلہ, jism hilane me takleef, جسم ہلانے میں تکلیف, kamzori, کمزوری
+Common Symptoms: ذہنی کام میں دشواری، یادداشت کی کمی، جسمانی کمزوری
+Duration: دائمی
+Home Care: وٹامن D، سرگرمی کا نظم
+Specialist: Neurologist
+Urgency: YELLOW
+
+CONDITION: Dysthymia
+Spoken Roman Urdu Keywords: Udaasi, اداسی, har waqt mood kharab, ہر وقت موڈ خراب, susti, سستی, zehan hazir na hona, دماغ حاضر نہ ہونا
+Common Symptoms: دائمی اداسی، سستی، دھیان میں کمی
+Duration: دائمی
+Home Care: تھراپی، طرز زندگی کی تبدیلی
+Specialist: Psychiatrist or Psychologist
+Urgency: YELLOW
+
+CONDITION: Epilepsy
+Spoken Roman Urdu Keywords: Mirgi k daure, مرگی کے دورے, jhatke lagna, جھٹکے لگنا, behoshi, بے ہوشی, zehni jhatka, ذہنی جھٹکا
+Common Symptoms: دورے، ذہنی خلل
+Duration: دائمی
+Home Care: دوائیوں کی پابندی، دباؤ کنٹرول
+Specialist: Neurologist
+Urgency: YELLOW
+
+CONDITION: Graves' Disease
+Spoken Roman Urdu Keywords: Gala soojna, گلا سوجنا, gland ka masla, گلینڈ کا مسئلہ, jazbaati tabdeeli, جذباتی تبدیلی, gussa ana, غصہ آنا
+Common Symptoms: آٹو امیون تھائرائیڈ مسئلہ، جذباتی تبدیلی
+Duration: دائمی
+Home Care: طبی نگرانی، مراقبہ
+Specialist: Endocrinologist
+Urgency: YELLOW
+
+CONDITION: Measles
+Spoken Roman Urdu Keywords: Khasra, خسرہ, jism par laal daane, جسم پر لال دانے, tez bukhar, تیز بخار, nazla khansi, نزلہ کھانسی
+Common Symptoms: بخار، کھانسی، جسم پر دانے
+Duration: 7–14 دن
+Home Care: علیحدگی، صفائی
+Specialist: Pediatrician or Primary Care Physician
+Urgency: YELLOW
+
+CONDITION: Strep Throat
+Spoken Roman Urdu Keywords: Gale ka infection, گلے کا انفیکشن, shadeed khansi, شدید کھانسی, bukhar, بخار, gale me pips, گلے میں پپ
+Common Symptoms: بخار، گلے میں درد، پپ
+Duration: 7–10 دن
+Home Care: چیزیں شریک نہ کریں، صفائی
+Specialist: Primary Care Physician
+Urgency: YELLOW
+
+CONDITION: Kidney Diseases
+Spoken Roman Urdu Keywords: Gurdon ka masla, گردوں کا مسئلہ, har waqt thakawat, ہر وقت تھکاوٹ, saans phoolna, سانس پھولنا, peshab me takleef, پیشاب میں تکلیف
+Common Symptoms: تھکاوٹ، سانس پھولنا، پیشاب میں تکلیف
+Duration: دائمی
+Home Care: غذا کا کنٹرول، بی پی منیجمنٹ
+Specialist: Nephrologist
+Urgency: YELLOW
+
+CONDITION: Parkinson's Disease
+Spoken Roman Urdu Keywords: Haath kaanpna, ہاتھ کانپنا, raasha, رخسا, chalne me mushkil, چلنے میں مشکل, bhool jana, بھول جانا
+Common Symptoms: حرکتی مسائل، یادداشت کی دشواری
+Duration: دائمی اور بتدریج
+Home Care: ورزش، مراقبہ
+Specialist: Neurologist
+Urgency: YELLOW
+
+CONDITION: Anorexia Nervosa
+Spoken Roman Urdu Keywords: Bhook na lagna, بھوک نہ لگنا, khana na khana, کھانا نہ کھانا, boht zayada wazan kam hona, بہت زیادہ وزن کم ہونا, kamzori, کمزوری
+Common Symptoms: بھوک میں کمی، کمزوری، نفسیاتی دباؤ
+Duration: دائمی
+Home Care: غذائی و نفسیاتی معاونت
+Specialist: Psychiatrist or Psychologist
+Urgency: YELLOW
