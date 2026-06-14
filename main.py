@@ -151,15 +151,20 @@ class MedinovaKiosk:
         tk.Button(btn_row, text="🖨️ Print", font=("Arial", 11), bg="#95a5a6", fg=COLOR_WHITE, relief=tk.FLAT, command=self.print_summary).pack(side=tk.LEFT, padx=10)
 
     def load_dht_rules(self, file_path):
-        if os.path.exists(file_path):
-            with open(file_path, "r", encoding="utf-8") as f: return f.read()
+        base = os.path.dirname(os.path.abspath(__file__))
+        full_path = file_path if os.path.isabs(file_path) else os.path.join(base, file_path)
+        if os.path.exists(full_path):
+            with open(full_path, "r", encoding="utf-8") as f:
+                return f.read()
         return ""
 
     def load_disease_rules(self, file_path):
         rules = []
-        if not os.path.exists(file_path):
+        base = os.path.dirname(os.path.abspath(__file__))
+        full_path = file_path if os.path.isabs(file_path) else os.path.join(base, file_path)
+        if not os.path.exists(full_path):
             return rules
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(full_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         # Split into blocks separated by one or more blank lines.
@@ -778,12 +783,13 @@ class MedinovaKiosk:
 
     def finalize_triage(self):
         matched = self.match_disease_rule()
-        if matched:
+        # Only apply rule-based overrides when the match is confident
+        if matched and matched.get('score', 0) >= 0.6:
             rule = matched.get('rule', matched)
             # set disease name from rule
             self.patient_data['symptom'] = rule.get('disease', self.patient_data.get('symptom',''))
             self.detected_disease = rule.get('disease', '')
-            
+
             # Map backend urgency to internal levels
             u = rule.get('urgency', '').strip().upper()
             if u == 'RED' or u == 'CRITICAL':
