@@ -18,6 +18,8 @@ import random
 from datetime import datetime
 from fpdf import FPDF
 from static_ffmpeg import add_paths
+from db_query import MediNovaDB
+from vector_engine import MediNovaVectorEngine
 
 # Add ffmpeg paths
 add_paths()
@@ -40,15 +42,6 @@ COLOR_LIGHT_BG = "#F4F7F6"
 COLOR_TEXT = "#2C3E50"
 COLOR_URGENT = "#E74C3C"
 COLOR_SHIELD = "#2ECC71"
-
-QUOTES = [
-    "تندرستی ہزار نعمت ہے۔",
-    "صحت مند جسم میں ہی صحت مند دماغ ہوتا ہے۔",
-    "احتیاط علاج سے بہتر ہے۔",
-    "روزانہ ورزش آپ کی زندگی بدل سکتی ہے۔",
-    "اچھی نیند بہترین دوا ہے۔"
-]
-
 class MedinovaKiosk:
     def __init__(self, root):
         self.root = root
@@ -60,21 +53,14 @@ class MedinovaKiosk:
         self.urgency_level = "GREEN"
         self.patient_data = {"name": "", "age": "", "symptom": "", "location": "", "duration": "", "severity": "", "associated": "", "specialist": "", "additional": "", "care": "", "time": ""}
         self.dialog_state = "idle"
-        self.follow_up_index = 0
-        self.follow_up_questions = [
-            "یہ درد کب شروع ہوا؟",
-            "کیا درد مستقل ہے یا وقفے وقفے سے ہوتا ہے؟",
-            "کیا آپ کو بخار یا چکر محسوس ہو رہا ہے؟",
-            "کیا کوئی چیز اس درد کو بہتر یا خراب کرتی ہے؟",
-            "براہِ کرم بتائیں درد کی شدت کیا ہے؟ کم، درمیانہ، یا شدید؟"
-        ]
         self.is_recording = False
         self.is_breathing = False
         self.conversation_started = False
         self.mic_pulse_id = None
         self.mic_pulse_step = 0
-        self.dht_rules = self.load_dht_rules("data/dht_rules.txt")
-        self.disease_rules = self.load_disease_rules("data/disease_rules.txt")
+        self.conversation_history = []
+        self.last_pdf = None  # Add this line to store the last generated report path
+        self.vector_engine = MediNovaVectorEngine(r"C:\Users\Fatima\medinova_kiosk\data\Diseases_Symptoms.csv")
 
         pygame.mixer.init()
         self.setup_ui()
@@ -100,12 +86,9 @@ class MedinovaKiosk:
         self.mic_icon = self.mic_canvas.create_text(60, 60, text="🎤", fill="white", font=("Arial", 40))
         self.mic_canvas.pack()
         self.mic_canvas.bind("<Button-1>", lambda e: self.handle_mic_click())
-
-        self.mic_btn = tk.Button(mic_section, text="🎤 START", font=("Arial", 12, "bold"), bg=COLOR_OCEAN, fg=COLOR_WHITE, relief=tk.FLAT, command=self.handle_mic_click, padx=20, pady=10)
-        self.mic_btn.pack(pady=(10, 0))
         
-        self.mic_instruction = tk.Label(mic_section, text="Click the mic to begin voice conversation", font=("Arial", 10, "bold"), bg=COLOR_WHITE, fg=COLOR_OCEAN)
-        self.mic_instruction.pack(pady=(5, 0))
+        self.mic_instruction = tk.Label(mic_section, text="Click the mic icon to start your consultation", font=("Arial", 10, "bold"), bg=COLOR_WHITE, fg=COLOR_OCEAN)
+        self.mic_instruction.pack(pady=(10, 0))
 
         # 3. Main Content (Chat + Avatar)
         content_frame = tk.Frame(self.root, bg=COLOR_WHITE)
@@ -138,6 +121,7 @@ class MedinovaKiosk:
         self.chat_log.tag_configure("usr", foreground=COLOR_TEAL, font=("Segoe UI", 18))
 
         # 4. Control Panel (FOOTER)
+        # 4. Control Panel (FOOTER)
         footer = tk.Frame(self.root, bg=COLOR_LIGHT_BG, height=100)
         footer.pack(fill=tk.X, side=tk.BOTTOM)
 
@@ -146,121 +130,65 @@ class MedinovaKiosk:
 
         tk.Button(btn_row, text="🧘 Breathe", font=("Arial", 11), bg=COLOR_TEAL, fg=COLOR_WHITE, command=self.pause_and_breathe, relief=tk.FLAT, padx=15, pady=8).pack(side=tk.LEFT, padx=10)
         tk.Button(btn_row, text="📄 Scan", font=("Arial", 11), bg=COLOR_TEAL, fg=COLOR_WHITE, relief=tk.FLAT, padx=15, pady=8).pack(side=tk.LEFT, padx=10)
-        tk.Button(btn_row, text="🖨️ Print", font=("Arial", 11), bg="#95a5a6", fg=COLOR_WHITE, relief=tk.FLAT, command=self.print_summary).pack(side=tk.LEFT, padx=10)
-
-    def load_dht_rules(self, file_path):
-        if os.path.exists(file_path):
-            with open(file_path, "r", encoding="utf-8") as f: return f.read()
-        return ""
-
-    def load_disease_rules(self, file_path):
-        rules = []
-        if not os.path.exists(file_path):
-            return rules
-        with open(file_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#"): continue
-                parts = [part.strip() for part in line.split("|")]
-                if len(parts) >= 4:
-                    urgency = parts[2].strip().lower()
-                    specialist = ""
-                    care = ""
-                    if len(parts) > 4:
-                        specialist = parts[3]
-                        care = parts[4]
-                    else:
-                        if urgency == 'low':
-                            care = parts[3]
-                        else:
-                            specialist = parts[3]
-                    rules.append({
-                        "disease": parts[0],
-                        "symptoms": parts[1],
-                        "urgency": parts[2],
-                        "specialist": specialist,
-                        "care": care
-                    })
-        return rules
-
-    def tokenize(self, text):
-        import re
-        if not text: return set()
-        # capture Urdu/Arabic letters and latin words/numbers
-        tokens = re.findall(r"[\u0600-\u06FF\w]+", text.lower())
-        stop = set([
-            "میں","ہے","کو","کا","کے","کی","اور","نہیں","کیہ","کیا","ہوں","ہوں","ہے","ہے","کا","بھی",
-            "the","is","a","an","and","or","of","in","on","at","to","for","with","not"
-        ])
-        return set([t for t in tokens if t and t not in stop])
-
-    def infer_green_home_care(self):
-        text = ' '.join([
-            self.patient_data.get('symptom', ''),
-            self.patient_data.get('location', ''),
-            self.patient_data.get('duration', ''),
-            self.patient_data.get('severity', ''),
-            self.patient_data.get('associated', ''),
-            self.patient_data.get('additional', '')
-        ]).lower()
-
-        if any(word in text for word in ["بخار", "گرمی", "تپ"]):
-            return "بخار کی صورت میں ٹھنڈی پتیاں لیں اور آرام کریں۔"
-        if any(word in text for word in ["فلُو", "نزلہ", "کھانسی", "سردی", "گلے", "گلا", "ہلکا سر درد"]):
-            return "فلُو کی علامات کے لئے چائے یا جوشاندہ پئیں۔"
-        if any(word in text for word in ["ناک", "چھینک", "نزلہ", "ناک بند", "ناک کا درد"]):
-            return "ناک کے درد یا بندش کے لئے بھاپ لیں یا سٹیم کریں۔"
-        if any(word in text for word in ["سینے", "سینہ", "سانس", "جکڑن"]) and any(word in text for word in ["کھانسی", "پسینہ", "تھکاوٹ", "دشوار"]):
-            return "سینے کی الجھن کے لئے بھاپ لیں، آرام کریں اور ہلکا گرم مشروب لیں۔"
-        return "گھر پر آرام کریں، زیادہ پانی پیئیں اور اگر علامات برقرار رہیں تو ڈاکٹر سے رجوع کریں۔"
-
+        # Updated Print Button
+        tk.Button(btn_row, text="🖨️ Print Report", font=("Arial", 11), bg="#95a5a6", fg=COLOR_WHITE, relief=tk.FLAT, command=self.print_summary, padx=15, pady=8).pack(side=tk.LEFT, padx=10)
     def log(self, sender, message, tag=None):
         self.chat_log.config(state=tk.NORMAL)
         disp = "Medinova (AI)" if sender=="AI" else "Patient (User)"
         self.chat_log.insert(tk.END, f"{disp}:\n", "ai" if sender=="AI" else "usr")
         self.chat_log.insert(tk.END, f"{message}\n\n", tag if tag else None)
         self.chat_log.config(state=tk.DISABLED); self.chat_log.see(tk.END)
-
     def speak(self, text):
         try:
+            # Strip markdown symbols for natural TTS
+            import re
+            clean_text = re.sub(r'[\*#_~`]', '', text)
             self.status_lbl.config(text="Speaking...")
-            tts = gTTS(text=text, lang='ur')
+            tts = gTTS(text=clean_text, lang='ur')
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
                 tmp = fp.name
                 tts.save(tmp)
             aud = AudioSegment.from_mp3(tmp)
-            aud = aud._spawn(aud.raw_data, overrides={"frame_rate": int(aud.frame_rate * 1.1)}).set_frame_rate(aud.frame_rate)
+            
+            # Increase speech speed for natural/fluent voice
+            aud = aud._spawn(aud.raw_data, overrides={"frame_rate": int(aud.frame_rate * 1.25)}).set_frame_rate(aud.frame_rate)
             proc = tmp.replace(".mp3", "_p.wav")
             aud.export(proc, format="wav")
-            pygame.mixer.music.load(proc); pygame.mixer.music.play()
-            while pygame.mixer.music.get_busy(): pygame.time.Clock().tick(10)
+            
+            pygame.mixer.music.load(proc)
+            pygame.mixer.music.play()
+            while pygame.mixer.music.get_busy(): 
+                pygame.time.Clock().tick(10)
             pygame.mixer.music.unload()
-            try: os.remove(tmp); os.remove(proc)
-            except: pass
+            try: 
+                os.remove(tmp)
+                os.remove(proc)
+            except: 
+                pass
             self.status_lbl.config(text="Ready")
-        except Exception as e: print(f"TTS Error: {e}")
-
+        except Exception as e: 
+            print(f"TTS Error: {e}")
     def initial_sequence(self):
         d = "یہ ایک AI میڈیکل اسسٹنٹ ہے، ڈاکٹر نہیں۔ یہ صرف عمومی رہنمائی فراہم کرتا ہے۔ کسی بھی سنجیدہ مسئلے کی صورت میں فوراً ڈاکٹر سے رجوع کریں۔"
         self.log("AI", d); self.speak(d)
-        g = "السلام علیکم! میں میڈینووا ہوں۔ آپ آج کیسا محسوس کر رہے ہیں؟"
+        g = "السلام علیکم! براہ کرم مجھے اپنا نام، عمر اور اپنی طبی علامات کے بارے میں تفصیل سے بتائیں۔"
         self.log("AI", g); self.speak(g)
 
     def handle_mic_click(self):
         if self.is_recording:
             self.is_recording = False
-            self.mic_btn.config(bg=COLOR_OCEAN, text="🎤 START")
             self.mic_instruction.config(text="Conversation paused. Click mic to resume.")
             self.stop_mic_animation()
             return
 
         self.is_recording = True
-        self.mic_btn.config(bg=COLOR_URGENT, text="🛑 STOP")
         self.mic_instruction.config(text="Conversation started. Preparing the AI greeting...")
         self.start_mic_animation()
 
         if not self.conversation_started:
             self.conversation_started = True
+            self.conversation_history = []
+            self.patient_data = {"name": "", "age": "", "symptom": "", "location": "", "duration": "", "severity": "", "associated": "", "specialist": "", "additional": "", "care": "", "time": ""}
             self.dialog_state = "awaiting_initial_response"
             threading.Thread(target=self.start_conversation, daemon=True).start()
         else:
@@ -343,9 +271,6 @@ class MedinovaKiosk:
         if self.dialog_state == "awaiting_initial_response":
             return self.handle_initial_response(user_text)
 
-        if self.dialog_state == "awaiting_body_part":
-            return self.handle_body_part_response(user_text)
-
         if self.dialog_state == "collect_follow_up":
             return self.handle_follow_up_response(user_text)
 
@@ -373,140 +298,16 @@ class MedinovaKiosk:
 
         if any(word in user_text for word in sick_keywords):
             self.patient_data['symptom'] = user_text
-            location = self.extract_body_part(user_text)
-            if location:
-                self.patient_data['location'] = location
-                # Try to match a disease rule now using tokens
-                match = self.match_disease_rule()
-                # If we have a confident match (>=60% symptoms matched), present analysis immediately
-                if match and match.get('score', 0) >= 0.6:
-                    self.patient_data['symptom'] = match['rule']['disease']
-                    self.patient_data['specialist'] = match['rule'].get('specialist','')
-                    self.finalize_triage()
-                    summary = self.build_analysis_summary()
-                    self.ai_reply(summary)
-                    # After confident analysis, act based on urgency
-                    if self.urgency_level == 'GREEN':
-                        self.dialog_state = 'idle'
-                        self.conversation_started = False
-                        return False
-                    if self.urgency_level == 'YELLOW':
-                        self.dialog_state = 'appointment_offer'
-                        self.ai_reply("گھر پر دیکھ بھال آپ کے لئے مفید ہو سکتی ہے، اور میں آپ کو ڈاکٹر سے ملاقات بک کرنے کی بھی سفارش کرتا ہوں۔ کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
-                        return True
-                    # RED
-                    self.dialog_state = 'appointment_offer'
-                    self.ai_reply("یہ صورتحال شدید خطرے کی جانب اشارہ دیتی ہے، اور میں آپ کو فوری طور پر ڈاکٹر سے ملاقات بک کرنے کی سفارش کرتا ہوں۔ کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
-                    return True
-
-                # Otherwise build follow-ups for missing symptoms only
-                built = self.generate_follow_ups_from_rules(location, match)
-                if not built:
-                    self.follow_up_questions = self.follow_up_questions
-                    self.follow_up_keys = ["duration", "pattern", "associated", "additional", "severity"]
-                self.dialog_state = "collect_follow_up"
-                self.follow_up_index = 0
-                self.ai_reply("براہِ کرم مزید تفصیل بتائیں۔ " + self.follow_up_questions[self.follow_up_index])
-                self.follow_up_index += 1
-                return True
-
-            self.dialog_state = "awaiting_body_part"
-            self.ai_reply("آپ کے جسم کے کس حصے میں درد ہے؟")
-            return True
+            self.conversation_history.append({"role": "user", "content": user_text})
+            self.dialog_state = "collect_follow_up"
+            return self.get_ai_follow_up()
 
         self.ai_reply("معاف کیجئے، میں سمجھ نہیں سکی۔ کیا آپ ٹھیک ہیں یا آپ کو جسم کے کسی حصے میں درد ہے؟")
         return True
 
-    def handle_body_part_response(self, user_text):
-        self.patient_data['location'] = user_text
-        if not self.patient_data['symptom']:
-            self.patient_data['symptom'] = "درد"
-        # Try to match rule now
-        match = self.match_disease_rule()
-        if match and match.get('score',0) >= 0.6:
-            self.patient_data['symptom'] = match['rule']['disease']
-            self.patient_data['specialist'] = match['rule'].get('specialist','')
-            self.finalize_triage()
-            summary = self.build_analysis_summary()
-            self.ai_reply(summary)
-            if self.urgency_level == 'GREEN':
-                self.dialog_state = 'idle'
-                self.conversation_started = False
-                return False
-            if self.urgency_level == 'YELLOW':
-                self.dialog_state = 'appointment_offer'
-                self.ai_reply("گھر پر دیکھ بھال آپ کے لئے مفید ہو سکتی ہے، اور میں آپ کو ڈاکٹر سے ملاقات بک کرنے کی بھی سفارش کرتا ہوں۔ کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
-                return True
-            self.dialog_state = 'appointment_offer'
-            self.ai_reply("یہ صورتحال شدید خطرے کی جانب اشارہ دیتی ہے، اور میں آپ کو فوری طور پر ڈاکٹر سے ملاقات بک کرنے کی سفارش کرتا ہوں۔ کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
-            return True
-
-        # Build targeted follow-ups based on the provided location and match
-        built = self.generate_follow_ups_from_rules(user_text, match)
-        if not built:
-            self.follow_up_keys = ["duration", "pattern", "associated", "additional", "severity"]
-            # ensure default questions exist
-            if not getattr(self, 'follow_up_questions', None):
-                self.follow_up_questions = [
-                    "یہ درد کب شروع ہوا؟",
-                    "کیا درد مستقل ہے یا وقفے وقفے سے ہوتا ہے؟",
-                    "کیا آپ کو بخار یا چکر محسوس ہو رہا ہے؟",
-                    "کیا کوئی چیز اس درد کو بہتر یا خراب کرتی ہے؟",
-                    "براہِ کرم بتائیں درد کی شدت کیا ہے؟ کم، درمیانہ، یا شدید؟"
-                ]
-        self.dialog_state = "collect_follow_up"
-        self.follow_up_index = 0
-        self.ai_reply(self.follow_up_questions[self.follow_up_index])
-        self.follow_up_index += 1
-        return True
-
     def handle_follow_up_response(self, user_text):
-        # Use dynamic follow_up_keys if present
-        if hasattr(self, 'follow_up_keys') and self.follow_up_keys:
-            keys = self.follow_up_keys
-        else:
-            keys = ["duration", "pattern", "associated", "additional", "severity"]
-
-        key = keys[self.follow_up_index - 1]
-
-        # Store responses; allow dynamic symptom keys like 'sym_0'
-        self.patient_data[key] = user_text
-
-        # If this answer was the pain-level (severity) question, parse and apply it.
-        if key == "severity":
-            p = self.parse_pain_level(user_text)
-            if p:
-                if p == "critical":
-                    self.urgency_level = "RED"
-                elif p == "medium":
-                    if self.urgency_level != "RED":
-                        self.urgency_level = "YELLOW"
-                elif p == "low":
-                    if self.urgency_level != "RED":
-                        self.urgency_level = "GREEN"
-
-        # Proceed to next follow-up if any
-        if self.follow_up_index < len(self.follow_up_questions):
-            self.ai_reply(self.follow_up_questions[self.follow_up_index])
-            self.follow_up_index += 1
-            return True
-
-        # All follow-ups collected
-        self.dialog_state = "appointment_offer"
-        self.ai_reply("میں نے آپ کی تفصیل لے لی ہے۔ اب میں آپ کی صورتحال کا جائزہ لوں گا۔")
-        # finalize_triage will consider collected symptom answers
-        self.finalize_triage()
-        summary = self.build_analysis_summary()
-        self.ai_reply(summary)
-        if self.urgency_level == "GREEN":
-            self.dialog_state = "idle"
-            self.conversation_started = False
-            return False
-        if self.urgency_level == "YELLOW":
-            self.ai_reply("گھر پر دیکھ بھال آپ کے لئے مفید ہو سکتی ہے، اور میں آپ کو ڈاکٹر سے ملاقات بک کرنے کی بھی سفارش کرتا ہوں۔ کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
-            return True
-        self.ai_reply("یہ صورتحال شدید خطرے کی جانب اشارہ دیتی ہے، اور میں آپ کو فوری طور پر ڈاکٹر سے ملاقات بک کرنے کی سفارش کرتا ہوں۔ کیا آپ ڈاکٹر سے ملاقات بک کرنا چاہیں گے؟")
-        return True
+        self.conversation_history.append({"role": "user", "content": user_text})
+        return self.get_ai_follow_up()
 
     def handle_appointment_response(self, user_text):
         yes_keywords = ["جی ہاں", "ہاں", "yes", "yeah", "جی", "haan"]
@@ -578,265 +379,206 @@ class MedinovaKiosk:
         value += current
         return value if value > 0 else None
 
-    def parse_pain_level(self, text):
-        """Parse patient reported pain level into one of: 'low', 'medium', 'critical'."""
-        t = text.lower()
-        # Critical indicators
-        critical = ["شدید", "انتہائی", "زیادہ", "ہنگامی", "قریب الموت", "critical", "severe", "emergency"]
-        medium = ["درمیانہ", "معتدل", "medium", "moderate", "مڈ"]
-        low = ["کم", "ہلکا", "ہلکی", "light", "low", "mild"]
+    def call_groq(self, messages):
+        if not client:
+            return "معذرت، میں ابھی کام نہیں کر رہی۔"
+        try:
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=512
+            )
+            raw_reply = response.choices[0].message.content
+            # Surgical Script Filter: Removes Chinese (CJK) and Hindi (Devanagari) characters
+            import re
+            clean_reply = re.sub(r'[\u4e00-\u9fff\u3400-\u4dbf\u0900-\u097f]', '', raw_reply)
+            return clean_reply.strip()
+        except Exception as e:
+            print(f"!!! GROQ CONNECTION ERROR !!!")
+            print(f"Details: {e}")
+            return "معذرت، سرور کے ساتھ رابطہ کرنے میں مسئلہ پیش آیا۔"
 
-        for w in critical:
-            if w in t:
-                return "critical"
-        for w in medium:
-            if w in t:
-                return "medium"
-        for w in low:
-            if w in t:
-                return "low"
+    def get_ai_follow_up(self):
+        # Extract full conversation history for semantic context
+        all_text = " ".join([m["content"] for m in self.conversation_history if m["role"] == "user"])
+        
+        # Use Multilingual Semantic search (RAG) with enhanced formatting and confidence filtering
+        semantic_matches = self.vector_engine.search(all_text, top_n=5)
+        valid_matches = [m for m in semantic_matches if m.get('confidence', 0) > 0.45]
+        
+        if not valid_matches:
+            rag_context = "No relevant medical conditions found in the database."
+            top_diagnosis = "Unidentified Condition"
+            top_treatments = "Consultation with a medical professional"
+            rag_guidance = "CRITICAL RULE: The symptoms were NOT found in the dataset. DO NOT HALLUCINATE. You MUST respond exactly with the Urdu translation of: 'Sorry, I could not find sufficient information related to your symptoms in the available medical knowledge base. Please consult a qualified healthcare professional for proper medical advice.' and then continue the conversation professionally."
+        else:
+            rag_context = self.vector_engine.format_for_llm(valid_matches)
+            top_diagnosis = valid_matches[0]["name"]
+            top_treatments = valid_matches[0]["treatments"]
+            rag_guidance = """CRITICAL RULE: A match WAS found in the dataset. You MUST use it as supporting evidence and include:
+- The matched condition
+- Supporting symptoms from the dataset
+- Possible treatments from the dataset
+- Recommendations from the dataset"""
 
-        # If numeric scale provided (e.g., 1-10), interpret 1-3 low, 4-7 medium, 8-10 critical
-        import re
-        nums = re.findall(r"\d+", t)
-        if nums:
+        system_prompt = f"""You are an expert AI Medical Assistant for MediNova Health Kiosk. Your role is to:
+1. Conduct a professional clinical interview
+2. Gather patient demographics (Name, Age)
+3. Collect comprehensive symptom details
+4. Provide evidence-based medical guidance using the knowledge base
+5. Guide toward appropriate specialist referral
+
+CLINICAL KNOWLEDGE BASE (RAG - Retrieved from Medical Database):
+{rag_context}
+
+CONVERSATION PROTOCOL & RULES:
+- Ask ONLY ONE clear follow-up question at a time. Wait for response. DO NOT ask multiple questions in a single message.
+- {rag_guidance}
+- COMPARE previous symptoms, previous urgency, previous assessments, and previous recommendations with current ones (if past history is provided in earlier contexts).
+- Improve your assessment accuracy by using current symptoms, follow-up answers, dataset evidence, and patient history combined.
+- Confirm patient identity/details early
+- Ask specific follow-up questions about symptom onset, duration, severity
+- Map symptoms to the medical conditions in the knowledge base
+- Once confident with diagnosis, provide specialist recommendation
+- When consultation ends and a report is generated with a specialist referral, YOU MUST remind the patient: "Please bring this report with you when visiting the specialist."
+- Be empathetic, professional, and speak in Urdu (script format)
+- Do NOT repeat information already provided
+
+CRITICAL FORMATTING RULES:
+- Speak ONLY in Urdu script (no English except medical terms like disease/specialist names)
+- When ready to provide diagnosis, include this exact JSON structure:
+--- BILINGUAL REPORT DATA ---
+{{
+  "diagnosed_disease": "{top_diagnosis}",
+  "specialist_name": "[APPROPRIATE SPECIALIST]",
+  "appointment_time": "[SUGGESTED TIME]",
+  "patient_name": "[EXTRACTED NAME]",
+  "patient_age": "[EXTRACTED AGE]",
+  "detailed_analysis": "[CLINICAL SUMMARY]",
+  "recommended_treatments": "{top_treatments}"
+}}
+--- END BILINGUAL REPORT DATA ---
+
+- When diagnosis is complete and user confirms, append: [TRIGGER_BOOKING: TRUE]
+- Extract and preserve patient data using: [EXTRACTED_DATA: {{"name": "[Name]", "age": "[Age]"}}]
+"""
+        messages = [{"role": "system", "content": system_prompt}] + self.conversation_history
+        reply = self.call_groq(messages)
+        
+        # Data Extraction logic
+        ext_match = re.search(r'\[EXTRACTED_DATA: (\{.*?\})\]', reply)
+        if ext_match:
             try:
-                n = int(nums[0])
-                # numeric scale interpreted below
-                if n <= 3:
-                    return "low"
-                if n <= 7:
-                    return "medium"
-                return "critical"
-            except:
-                pass
+                ext_data = json.loads(ext_match.group(1))
+                if ext_data.get("name") and "[" not in ext_data["name"]:
+                    self.patient_data["name"] = ext_data["name"]
+                if ext_data.get("age") and "[" not in ext_data["age"]:
+                    self.patient_data["age"] = ext_data["age"]
+            except: pass
+            reply = re.sub(r'\[EXTRACTED_DATA: \{.*?\}\]', '', reply).strip()
 
-        return None
+        if "[TRIGGER_BOOKING: TRUE]" in reply or "--- BILINGUAL REPORT DATA ---" in reply:
+            self.finalize_bilingual_conversation(reply)
+            return False
+            
+        self.conversation_history.append({"role": "assistant", "content": reply})
+        self.ai_reply(reply)
+        return True
+
+    def finalize_bilingual_conversation(self, full_reply):
+        # Extract the Urdu part for voice/UI
+        urdu_summary = full_reply.split("--- BILINGUAL")[0].strip()
+        self.ai_reply(urdu_summary)
+        self.patient_data['additional'] = full_reply # Store full for PDF parsing
+        
+        # Stop session logic
+        self.dialog_state = "idle"
+        self.conversation_started = False
+        self.is_recording = False
+        
+        # Generate report if it contains booking data
+        if "TRIGGER_FINISH" in full_reply or "BILINGUAL REPORT DATA" in full_reply:
+             self.generate_bilingual_pdf_report(full_reply)
+
+   # Footer
+                pdf.ln(5)
+                pdf.set_font("Arial", "I", 8)
+                pdf.set_text_color(128, 128, 128)
+                pdf.cell(0, 6, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
+                
+                filename = f"Report_{self.patient_data.get('name', 'Patient').replace(' ', '_')}_{int(time.time())}.pdf"
+                pdf.output(filename)
+                self.last_pdf = filename # Save for print functionality
+                
+                messagebox.showinfo("Report Ready", f"Professional Report saved as:\n{filename}\n\nPress OK to open for printing.")
+                
+                # Try to open the file
+                import subprocess
+                try:
+                    subprocess.Popen(['start', filename], shell=True)
+                except:
+                    pass
+            else:
+                raise ValueError("No valid report data found")
+                
+        except Exception as e:
+            print(f"PDF Error: {e}")
+            messagebox.showerror("Error", f"Could not generate professional PDF.\n\nError: {str(e)}")
+            # Save text fallback
+            txt_filename = f"Report_{int(time.time())}.txt"
+            with open(txt_filename, "w", encoding="utf-8") as f:
+                f.write(f"MediNova Health Report\n")
+                f.write(f"Name: {self.patient_data.get('name')}\n")
+                f.write(f"Age: {self.patient_data.get('age')}\n")
+                f.write(f"Date: {self.patient_data.get('time')}\n\n")
+                f.write(raw_data)
+            self.last_pdf = txt_filename
 
     def ai_reply(self, message):
         self.log("AI", message)
         self.speak(message)
 
-    def extract_body_part(self, text):
-        body_parts = ["سر", "سینہ", "پیٹ", "پیر", "جاں", "کولہے", "بازو", "کمر", "گردن", "پیٹھ", "تینڈی", "پیٹ", "پیٹھ"]
-        for part in body_parts:
-            # match exact or common Urdu suffix variations (e.g., 'سینہ' -> 'سینے')
-            if part in text or (part + 'ے') in text or (part[:-1] + 'ے') in text:
-                return part
-        keywords = {
-            "chest": "سینہ",
-            "stomach": "پیٹ",
-            "head": "سر",
-            "back": "پیٹھ",
-            "arm": "بازو",
-            "leg": "پیر",
-            "neck": "گردن"
-        }
-        for eng, ur in keywords.items():
-            if eng in text:
-                return ur
-        return ""
-
-    def generate_follow_ups_from_rules(self, location, match=None):
-        """Create targeted follow-up questions based on disease rules matching the given location.
-        If a `match` dict (from `match_disease_rule`) is provided, only ask about missing symptoms.
-        Returns True if any targeted questions were generated, False otherwise."""
-        loc = location.lower()
-        candidate_symptoms = []
-
-        if match and match.get('missing'):
-            # Use missing symptoms from the matched rule
-            candidate_symptoms = match['missing']
-            disease_name = match['rule'].get('disease','')
-        else:
-            # discover candidate symptoms by scanning rules for this location
-            for rule in self.disease_rules:
-                if loc in rule['disease'].lower() or loc in rule['symptoms'].lower():
-                    for s in rule['symptoms'].split('،'):
-                        sym = s.strip()
-                        if not sym: continue
-                        if loc in sym.lower():
-                            continue
-                        if sym not in candidate_symptoms:
-                            candidate_symptoms.append(sym)
-
-        # If still none found, try English mapping
-        if not candidate_symptoms:
-            eng_map = {"سر":"head","سینہ":"chest","پیٹ":"stomach","پیٹھ":"back","گردن":"neck","بازو":"arm","پیر":"leg"}
-            eng = eng_map.get(location, "")
-            if eng:
-                for rule in self.disease_rules:
-                    if eng in rule['disease'].lower() or eng in rule['symptoms'].lower():
-                        for s in rule['symptoms'].split('،'):
-                            sym = s.strip()
-                            if not sym: continue
-                            if sym not in candidate_symptoms:
-                                candidate_symptoms.append(sym)
-
-        if not candidate_symptoms:
-            return False
-
-        # Build question list: timing/pattern, then one question per missing symptom, then severity
-        questions = ["یہ درد کب شروع ہوا؟", "کیا درد مستقل ہے یا وقفے وقفے سے ہوتا ہے؟"]
-        keys = ["duration", "pattern"]
-        for i, sym in enumerate(candidate_symptoms):
-            q = f"کیا آپ کو {sym} محسوس ہو رہا ہے؟"
-            questions.append(q)
-            keys.append(f"sym_{i}")
-
-        questions.append("براہِ کرم بتائیں درد کی شدت کیا ہے؟ کم، درمیانہ، یا شدید؟")
-        keys.append("severity")
-
-        self.follow_up_questions = questions
-        self.follow_up_keys = keys
-        return True
-
-
-    def finalize_triage(self):
-        matched = self.match_disease_rule()
-        if matched:
-            rule = matched.get('rule', matched)
-            # set disease name from rule
-            self.patient_data['symptom'] = rule.get('disease', self.patient_data.get('symptom',''))
-            # Map backend urgency to internal levels
-            u = rule.get('urgency', '').strip().lower()
-            if u == 'critical':
-                new_level = 'RED'
-            elif u == 'low':
-                new_level = 'GREEN'
-            else:
-                new_level = 'YELLOW'
-            # Respect patient-reported criticality: choose the more urgent level
-            order = {'GREEN': 0, 'YELLOW': 1, 'RED': 2}
-            if order.get(new_level, 0) > order.get(self.urgency_level, 0):
-                self.urgency_level = new_level
-            self.patient_data['specialist'] = rule.get('specialist', '')
-            self.patient_data['care'] = rule.get('care', '')
-            return True
-
-        # If no disease rule matched, keep any patient-reported urgency (if set),
-        # otherwise default to GREEN.
-        if not self.urgency_level:
-            self.urgency_level = 'GREEN'
-        return True
-
-    def build_analysis_summary(self):
-        summary = []
-        summary.append("میں نے آپ کی صورتحال کا مکمل جائزہ لے لیا ہے۔")
-        if self.patient_data.get('location'):
-            summary.append(f"درد کا مقام: {self.patient_data['location']}")
-        if self.patient_data.get('duration'):
-            summary.append(f"درد کی مدت: {self.patient_data['duration']}")
-        if self.patient_data.get('severity'):
-            summary.append(f"شدت: {self.patient_data['severity']}")
-        if self.patient_data.get('associated'):
-            summary.append(f"متعلقہ علامات: {self.patient_data['associated']}")
-        if self.patient_data.get('additional'):
-            summary.append(f"اضافی معلومات: {self.patient_data['additional']}")
-
-        if self.urgency_level == 'GREEN':
-            summary.append("آپ کی علامات کے مطابق یہ زیادہ خطرناک نہیں معلوم ہوتی۔")
-            care_text = self.patient_data.get('care') or self.infer_green_home_care()
-            summary.append(f"گھر پر دیکھ بھال: {care_text}")
-            summary.append("اللہ حافظ۔")
-        elif self.urgency_level == 'YELLOW':
-            summary.append("آپ کی علامات خطرناک سمت کی طرف جا رہی ہیں۔ گھر پر دیکھ بھال مفید ہو سکتی ہے، لیکن میں آپ کو ڈاکٹر سے ملاقات بک کرنے کی سفارش کرتا ہوں۔")
-        else:
-            summary.append("یہ صورتحال شدید خطرے کی جانب اشارہ دیتی ہے۔ میں آپ کو فوری طور پر ڈاکٹر سے ملاقات بک کرنے کی سفارش کرتا ہوں۔")
-
-        return ' '.join(summary)
-
-    def match_disease_rule(self):
-        # Build token set from patient data
-        text = ' '.join([
-            self.patient_data.get('symptom', ''),
-            self.patient_data.get('location', ''),
-            self.patient_data.get('duration', ''),
-            self.patient_data.get('severity', ''),
-            self.patient_data.get('associated', ''),
-            self.patient_data.get('additional', '')
-        ])
-        patient_tokens = self.tokenize(text)
-        best = None
-        best_score = 0.0
-        for rule in self.disease_rules:
-            # tokenize rule symptoms
-            rule_symptoms = [s.strip() for s in rule.get('symptoms','').split('،') if s.strip()]
-            if not rule_symptoms:
-                continue
-            rule_tokens = set()
-            for s in rule_symptoms:
-                rule_tokens.update(self.tokenize(s))
-
-            if not rule_tokens:
-                continue
-
-            matched = patient_tokens.intersection(rule_tokens)
-            score = len(matched) / max(len(rule_tokens), 1)
-            if score > best_score:
-                best_score = score
-                best = {
-                    'rule': rule,
-                    'score': score,
-                    'matched': list(matched),
-                    'missing': [s for s in rule_symptoms if not (self.tokenize(s) & patient_tokens)]
-                }
-
-        return best
-
     def generate_downloadable_report(self):
-        spec_map = {"headache": "Neurologist", "fever": "General physician", "chest": "Cardiologist", "stomach": "Gastroenterologist"}
-        if not self.patient_data.get('specialist'):
-            self.patient_data['specialist'] = spec_map.get(self.patient_data['symptom'].lower(), "General physician")
         self.patient_data['time'] = datetime.now().strftime("%Y-%m-%d %H:%M")
-        if self.patient_data['name']:
-            filename_base = self.patient_data['name'].strip().replace(' ', '_')
-        else:
-            filename_base = 'medinova'
+        filename_base = self.patient_data['name'].strip().replace(' ', '_') or 'medinova'
+        
         report_note = ""
-        if self.urgency_level == "GREEN":
-            report_note = "آپ کی صورتحال کے مطابق یہ زیادہ خطرناک نہیں معلوم ہوتی۔"
+        if self.urgency_level == "RED":
+            report_note = "یہ صورتحال شدید خطرے کی جانب اشارہ کرتی ہے اور فوری طبی توجہ ضروری ہے۔"
         elif self.urgency_level == "YELLOW":
-            report_note = "آپ کی صورتحال کچھ خطرناک سمت کی طرف اشارہ کرتی ہے، اگر یہ جاری رہا تو مسائل بڑھ سکتے ہیں۔"
+            report_note = "آپ کی صورتحال کچھ خطرناک سمت کی طرف اشارہ کرتی ہے۔"
         else:
-            report_note = "آپ کی صورتحال شدید خطرے کی جانب اشارہ کرتی ہے اور فوری طبی توجہ ضروری ہے۔"
+            report_note = "آپ کی صورتحال زیادہ خطرناک نہیں معلوم ہوتی۔"
 
         lines = [
             ("نام", self.patient_data['name']),
             ("عمر", self.patient_data['age']),
-            ("علامات", self.patient_data['symptom']),
-            ("جسمانی مقام", self.patient_data['location']),
-            ("مدت", self.patient_data['duration']),
-            ("شدت", self.patient_data['severity']),
-            ("متعلقہ علامات", self.patient_data['associated']),
-            ("اضافی معلومات", self.patient_data['additional']),
+            ("خلاصہ", self.patient_data['additional']),
             ("خطرے کی سطح", self.urgency_level),
-            ("ماہر", self.patient_data['specialist']),
-            ("تیاری کا وقت", self.patient_data['time']),
-            ("رپورٹ نوٹ", report_note)
+            ("وقت", self.patient_data['time']),
+            ("نوٹ", report_note)
         ]
 
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", "B", 16)
-        pdf.cell(0, 10, "Medinova صحت کی رپورٹ", ln=True, align="C")
+        pdf.cell(0, 10, "Medinova Health Report", ln=True, align="C")
         pdf.ln(8)
         pdf.set_font("Arial", "", 12)
         for label, value in lines:
             pdf.cell(0, 8, f"{label}: {value}", ln=True)
+        
         path = f"{filename_base}_report_{int(time.time())}.pdf"
         try:
             pdf.output(path)
-            self.log("AI", f"DOWNLOADABLE REPORT READY: {path}")
-            self.speak("آپ کی رپورٹ تیار ہے۔ اللہ حافظ۔")
+            self.last_pdf = path # Store for Print function
             messagebox.showinfo("Report Ready", f"Saved to {path}")
-        except Exception:
-            path = f"{filename_base}_report_{int(time.time())}.txt"
+        except:
+            path = path.replace(".pdf", ".txt")
             with open(path, "w", encoding="utf-8") as f:
-                for label, value in lines:
-                    f.write(f"{label}: {value}\n")
-            self.log("AI", f"DOWNLOADABLE REPORT READY: {path}")
-            self.speak("آپ کی رپورٹ تیار ہے۔ اللہ حافظ۔")
+                for label, value in lines: f.write(f"{label}: {value}\n")
+            self.last_pdf = path
             messagebox.showinfo("Report Ready", f"Saved to {path}")
 
     def pause_and_breathe(self):
@@ -853,7 +595,21 @@ class MedinovaKiosk:
         threading.Thread(target=anim).start()
 
     def print_summary(self):
-        messagebox.showinfo("Printing", "Printing Summary...")
+        if hasattr(self, 'last_pdf') and self.last_pdf and os.path.exists(self.last_pdf):
+            try:
+                if os.name == 'nt':
+                    # Windows default print handler
+                    os.startfile(self.last_pdf, "print")
+                else:
+                    # Linux/Mac fallback
+                    subprocess.run(["lpr", self.last_pdf])
+                messagebox.showinfo("Printing", "Report sent to the printer successfully.")
+            except Exception as e:
+                messagebox.showerror("Print Error", f"Could not print the report.\n\nDetails: {str(e)}")
+        else:
+            messagebox.showwarning("No Report", "No report available to print. Please complete a consultation first.")
 
 if __name__ == "__main__":
-    root = tk.Tk(); app = MedinovaKiosk(root); root.mainloop()
+    root = tk.Tk()
+    app = MedinovaKiosk(root)
+    root.mainloop()

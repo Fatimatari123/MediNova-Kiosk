@@ -1,9 +1,0 @@
-# Medinova Disease Rules Repository
-# Format: Disease Name | Symptoms | Urgency (Critical/Low) | Specialist/Home Care
-
-Flu | بخار، کھانسی، گلے میں سوزش | Low | آرام کریں اور زیادہ سے زیادہ پانی پیئیں۔
-Heart Attack | سینے میں شدید درد، سانس لینے میں دشواری، پسینہ آنا | Critical | فوری طور پر امراض قلب کے ماہر (Cardiologist) سے رجوع کریں۔
-Diabetes | زیادہ پیاس لگنا، بار بار پیشاب آنا، تھکاوٹ | Low | شوگر کے ماہر (Endocrinologist) سے مشورہ کریں۔
-Asthma | سانس لینے میں دشواری، کھانسی، سینے میں جکڑن | Critical | پھیپھڑوں کے ماہر (Pulmonologist) سے رجوع کریں۔
-Common Cold | چھینکیں، ناک بہنا، ہلکا سر درد | Low | جوشاندہ استعمال کریں اور آرام کریں۔
-Covid-19 | تیز بخار، خشک کھانسی، سونگھنے کی حس کا ختم ہونا | Critical | فوری طور پر قرنطینہ کریں اور ڈاکٹر سے رابطہ کریں۔
