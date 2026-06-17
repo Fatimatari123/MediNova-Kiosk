@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medinova | Premium AI Healthcare</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .urdu { font-family: 'Noto Sans Arabic', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .hero-gradient { background: radial-gradient(circle at top right, #e0f2fe, transparent), radial-gradient(circle at bottom left, #f0fdf4, transparent); }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50">
+    <!-- Navigation -->
+    <nav class="navbar glass fixed top-0 z-50 px-6 py-4">
+        <div class="flex-1">
+            <a class="flex items-center gap-2 text-2xl font-bold text-slate-800" href="/">
+                <div class="bg-teal-500 p-2 rounded-xl text-white">
+                    <i data-lucide="shield-plus"></i>
+                </div>
+                MediNova
+            </a>
+        </div>
+        <div class="flex-none gap-4">
+            <a href="/dashboard" class="btn btn-ghost text-slate-600 font-medium">Dashboard</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <main class="hero-gradient pt-32 pb-20 px-6">
+        <div class="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
+            <div class="flex-1 text-center lg:text-left">
+                <div class="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm mb-6">
+                    <span class="relative flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-teal-500"></span>
+                    </span>
+                    <span class="text-sm font-medium text-slate-600">Now with Llama 3.3 Intelligence</span>
+                </div>
+                <h1 class="text-5xl lg:text-7xl font-bold text-slate-900 leading-tight mb-6">
+                    AI Healthcare for <span class="text-teal-600">Everyone.</span>
+                </h1>
+                <p class="text-xl text-slate-600 mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0 urdu">
+                    جدید ترین مصنوعی ذہانت اب آپ کی اپنی زبان اردو میں۔ گھر بیٹھے فوری طبی مشورہ حاصل کریں۔
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                    <!-- Removed duplicate consultation button -->
+                </div>
+            </div>
+            <div class="flex-1 relative">
+                <div class="w-full aspect-square bg-white rounded-[3rem] shadow-2xl overflow-hidden border-8 border-white">
+                    <img src="/static/assets/hero-image.avif" alt="Healthcare AI" class="w-full h-full object-cover">
+                </div>
+                <!-- Floating Info Card -->
+                <div class="absolute -bottom-6 -left-6 bg-white p-6 rounded-3xl shadow-xl border border-slate-100 max-w-[200px] animate-bounce">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="bg-blue-100 p-2 rounded-full text-blue-600">
+                            <i data-lucide="heart"></i>
+                        </div>
+                        <span class="text-xs font-bold text-slate-400">STATUS</span>
+                    </div>
+                    <p class="text-sm font-bold text-slate-800">Healthy Habits Analysis Active</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="bg-teal-50 py-4 px-6 text-center">
+        <p class="text-xs font-bold text-teal-800 uppercase tracking-widest">
+            ⚠️ DISCLAIMER: MEDINOVA is an AI healthcare assistant and does not replace a licensed medical professional. In emergencies, contact 1122.
+        </p>
+    </div>
+
+    <!-- Features -->
+    <section class="py-24 bg-white px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl lg:text-4xl font-bold text-slate-900 mb-4">Designed for Accessibility</h2>
+                <p class="text-slate-500">Simple enough for everyone, from children to the elderly.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-xl transition-shadow group">
+                    <div class="bg-white w-14 h-14 rounded-2xl flex items-center justify-center text-teal-600 mb-6 shadow-sm group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                        <i data-lucide="mic"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Voice First</h3>
+                    <p class="text-slate-500 leading-relaxed">No typing required. Just talk in Urdu and let our AI handle the rest.</p>
+                </div>
+                <div class="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-xl transition-shadow group">
+                    <div class="bg-white w-14 h-14 rounded-2xl flex items-center justify-center text-blue-600 mb-6 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                        <i data-lucide="languages"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Urdu Understanding</h3>
+                    <p class="text-slate-500 leading-relaxed">Specially trained to understand Roman Urdu and Native script perfectly.</p>
+                </div>
+                <div class="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-xl transition-shadow group">
+                    <div class="bg-white w-14 h-14 rounded-2xl flex items-center justify-center text-indigo-600 mb-6 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                        <i data-lucide="file-text"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">Instant Reports</h3>
+                    <p class="text-slate-500 leading-relaxed">Get a professional PDF summary of your health status immediately after chat.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer p-10 bg-slate-900 text-slate-300 flex flex-col items-center">
+        <div class="flex items-center gap-2 text-2xl font-bold text-white mb-4">
+            <i data-lucide="shield-plus" class="text-teal-500"></i>
+            MediNova
+        </div>
+        <p class="text-center">© 2026 MediNova Health AI. Helping rural communities thrive through intelligence.</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -15,6 +15,9 @@ import io
 import wave
 import time
 import random
+import re
+import json
+import subprocess
 from datetime import datetime
 from fpdf import FPDF
 from static_ffmpeg import add_paths
@@ -60,7 +63,7 @@ class MedinovaKiosk:
         self.mic_pulse_step = 0
         self.conversation_history = []
         self.last_pdf = None  # Add this line to store the last generated report path
-        self.vector_engine = MediNovaVectorEngine(r"C:\Users\Fatima\medinova_kiosk\data\Diseases_Symptoms.csv")
+        self.vector_engine = MediNovaVectorEngine(os.path.join(os.path.dirname(__file__), "data", "Diseases_Symptoms.csv"))
 
         pygame.mixer.init()
         self.setup_ui()
@@ -151,7 +154,7 @@ class MedinovaKiosk:
             aud = AudioSegment.from_mp3(tmp)
             
             # Increase speech speed for natural/fluent voice
-            aud = aud._spawn(aud.raw_data, overrides={"frame_rate": int(aud.frame_rate * 1.25)}).set_frame_rate(aud.frame_rate)
+            aud = aud._spawn(aud.raw_data, overrides={"frame_rate": int(aud.frame_rate * 1.2)}).set_frame_rate(aud.frame_rate)
             proc = tmp.replace(".mp3", "_p.wav")
             aud.export(proc, format="wav")
             
@@ -404,8 +407,7 @@ class MedinovaKiosk:
         all_text = " ".join([m["content"] for m in self.conversation_history if m["role"] == "user"])
         
         # Use Multilingual Semantic search (RAG) with enhanced formatting and confidence filtering
-        semantic_matches = self.vector_engine.search(all_text, top_n=5)
-        valid_matches = [m for m in semantic_matches if m.get('confidence', 0) > 0.45]
+        valid_matches = self.vector_engine.get_valid_matches(all_text, top_n=5)
         
         if not valid_matches:
             rag_context = "No relevant medical conditions found in the database."
@@ -487,51 +489,147 @@ CRITICAL FORMATTING RULES:
         return True
 
     def finalize_bilingual_conversation(self, full_reply):
-        # Extract the Urdu part for voice/UI
+        # Extract the Urdu part for voice/UI and store full reply for reporting
         urdu_summary = full_reply.split("--- BILINGUAL")[0].strip()
         self.ai_reply(urdu_summary)
-        self.patient_data['additional'] = full_reply # Store full for PDF parsing
-        
+        self.patient_data['additional'] = full_reply
+
         # Stop session logic
         self.dialog_state = "idle"
         self.conversation_started = False
         self.is_recording = False
-        
-        # Generate report if it contains booking data
-        if "TRIGGER_FINISH" in full_reply or "BILINGUAL REPORT DATA" in full_reply:
-             self.generate_bilingual_pdf_report(full_reply)
 
-   # Footer
-                pdf.ln(5)
-                pdf.set_font("Arial", "I", 8)
-                pdf.set_text_color(128, 128, 128)
-                pdf.cell(0, 6, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
-                
-                filename = f"Report_{self.patient_data.get('name', 'Patient').replace(' ', '_')}_{int(time.time())}.pdf"
-                pdf.output(filename)
-                self.last_pdf = filename # Save for print functionality
-                
-                messagebox.showinfo("Report Ready", f"Professional Report saved as:\n{filename}\n\nPress OK to open for printing.")
-                
-                # Try to open the file
-                import subprocess
-                try:
-                    subprocess.Popen(['start', filename], shell=True)
-                except:
-                    pass
-            else:
+        # If the assistant produced a bilingual report payload, try to generate a PDF
+        if "BILINGUAL REPORT DATA" in full_reply or "--- BILINGUAL REPORT DATA ---" in full_reply or "[TRIGGER_FINISH" in full_reply or "[TRIGGER_BOOKING" in full_reply:
+            try:
+                self.generate_bilingual_pdf_report(full_reply)
+            except Exception as e:
+                print(f"Error generating bilingual PDF: {e}")
+
+    def generate_bilingual_pdf_report(self, raw_data):
+        """Generate a bilingual PDF report from the assistant's raw reply payload."""
+        try:
+            # Try new bilingual payload first
+            match = re.search(r'--- BILINGUAL REPORT DATA ---\s*(\{.*?\})\s*--- END BILINGUAL REPORT DATA ---', raw_data, re.DOTALL)
+            if not match:
+                # Fallback to older REPORT DATA marker
+                match = re.search(r'--- REPORT DATA ---\s*(\{.*?\})\s*--- END REPORT DATA ---', raw_data, re.DOTALL)
+
+            if not match:
                 raise ValueError("No valid report data found")
-                
+
+            data = json.loads(match.group(1))
+
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_auto_page_break(auto=True, margin=15)
+
+            # Header
+            pdf.set_font("Arial", "B", 18)
+            pdf.cell(0, 15, "MediNova Health Consultation Report", ln=True, align="C")
+            pdf.set_font("Arial", "I", 10)
+            pdf.cell(0, 8, "AI-Assisted Medical Consultation Summary", ln=True, align="C")
+            pdf.ln(10)
+
+            # Patient Information
+            pdf.set_font("Arial", "B", 12)
+            pdf.set_text_color(0, 102, 153)
+            pdf.cell(0, 10, "PATIENT INFORMATION", ln=True)
+            pdf.set_text_color(0, 0, 0)
+
+            patient_fields = [
+                ("Name", data.get('patient_name', self.patient_data.get('name', 'N/A'))),
+                ("Age", data.get('patient_age', self.patient_data.get('age', 'N/A'))),
+                ("Date", self.patient_data.get('time', 'N/A'))
+            ]
+
+            for label, val in patient_fields:
+                pdf.set_font("Arial", "B", 10)
+                pdf.cell(40, 8, f"{label}:", 0)
+                pdf.set_font("Arial", "", 10)
+                pdf.cell(0, 8, str(val), ln=True)
+
+            pdf.ln(5)
+
+            # Clinical Findings
+            pdf.set_font("Arial", "B", 12)
+            pdf.set_text_color(0, 102, 153)
+            pdf.cell(0, 10, "CLINICAL FINDINGS", ln=True)
+            pdf.set_text_color(0, 0, 0)
+
+            diagnosis_fields = [
+                ("Diagnosed Condition", data.get('diagnosed_disease', data.get('diagnosed_disease', 'Pending'))),
+                ("Recommended Specialist", data.get('specialist_name', 'General Practitioner')),
+                ("Recommended Treatments", data.get('recommended_treatments', data.get('recommended_treatments', 'Medical consultation')))
+            ]
+
+            for label, val in diagnosis_fields:
+                pdf.set_font("Arial", "B", 10)
+                pdf.cell(45, 8, f"{label}:", 0)
+                pdf.set_font("Arial", "", 10)
+                pdf.multi_cell(0, 8, str(val), border=0)
+
+            # Appointment
+            if data.get('appointment_time'):
+                pdf.ln(5)
+                pdf.set_font("Arial", "B", 12)
+                pdf.set_text_color(0, 102, 153)
+                pdf.cell(0, 10, "APPOINTMENT SCHEDULED", ln=True)
+                pdf.set_text_color(0, 0, 0)
+                pdf.set_font("Arial", "", 10)
+                pdf.cell(45, 8, "Time:", 0)
+                pdf.multi_cell(0, 8, str(data.get('appointment_time')))
+
+            # Detailed Analysis
+            if data.get('detailed_analysis'):
+                pdf.ln(5)
+                pdf.set_font("Arial", "B", 12)
+                pdf.set_text_color(0, 102, 153)
+                pdf.cell(0, 10, "DETAILED ANALYSIS", ln=True)
+                pdf.set_text_color(0, 0, 0)
+                pdf.set_font("Arial", "", 9)
+                pdf.multi_cell(0, 5, str(data.get('detailed_analysis')))
+
+            # Disclaimer
+            pdf.ln(10)
+            pdf.set_font("Arial", "B", 9)
+            pdf.set_text_color(200, 0, 0)
+            pdf.cell(0, 6, "IMPORTANT DISCLAIMER", ln=True)
+            pdf.set_text_color(0, 0, 0)
+            pdf.set_font("Arial", "I", 8)
+            pdf.multi_cell(0, 4,
+                "This report is AI-generated and based on patient-provided information. "
+                "It should NOT replace professional medical diagnosis. "
+                "Please present this document to your healthcare specialist during your visit. "
+                "Always consult a licensed medical professional for proper diagnosis and treatment."
+            )
+
+            # Footer
+            pdf.ln(5)
+            pdf.set_font("Arial", "I", 8)
+            pdf.set_text_color(128, 128, 128)
+            pdf.cell(0, 6, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
+
+            filename = f"Report_{self.patient_data.get('name', 'Patient').replace(' ', '_')}_{int(time.time())}.pdf"
+            pdf.output(filename)
+            self.last_pdf = filename
+            messagebox.showinfo("Report Ready", f"Professional Report saved as:\n{filename}\n\nPress OK to open for printing.")
+
+            # Try to open the file for user convenience
+            try:
+                if os.name == 'nt':
+                    os.startfile(filename)
+                else:
+                    subprocess.Popen(['xdg-open', filename])
+            except Exception:
+                pass
+
         except Exception as e:
             print(f"PDF Error: {e}")
             messagebox.showerror("Error", f"Could not generate professional PDF.\n\nError: {str(e)}")
             # Save text fallback
             txt_filename = f"Report_{int(time.time())}.txt"
             with open(txt_filename, "w", encoding="utf-8") as f:
-                f.write(f"MediNova Health Report\n")
-                f.write(f"Name: {self.patient_data.get('name')}\n")
-                f.write(f"Age: {self.patient_data.get('age')}\n")
-                f.write(f"Date: {self.patient_data.get('time')}\n\n")
                 f.write(raw_data)
             self.last_pdf = txt_filename
 

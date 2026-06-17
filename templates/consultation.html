@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultation | Medinova AI</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .urdu { font-family: 'Noto Sans Arabic', sans-serif; direction: rtl; text-align: right; }
+        .chat-container { height: calc(100vh - 250px); }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.3); }
+        .pulse-teal { animation: pulse-teal 2s infinite; }
+        @keyframes pulse-teal { 0% { box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.7); } 70% { box-shadow: 0 0 0 20px rgba(20, 184, 166, 0); } 100% { box-shadow: 0 0 0 0 rgba(20, 184, 166, 0); } }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col overflow-hidden">
+    <!-- Header -->
+    <header class="glass sticky top-0 z-50 px-6 py-4 flex items-center justify-between shadow-sm">
+        <a href="/" class="flex items-center gap-2 text-xl font-bold text-slate-800">
+            <div class="bg-teal-500 p-1.5 rounded-lg text-white">
+                <i data-lucide="shield-plus" class="w-5 h-5"></i>
+            </div>
+            MediNova
+        </a>
+        <div class="flex items-center gap-4">
+            <div id="status-badge" class="badge badge-success gap-2 py-3 px-4 text-xs font-bold text-white border-none">
+                <span class="w-2 h-2 rounded-full bg-white"></span>
+                READY
+            </div>
+            <a href="/" class="btn btn-sm btn-ghost rounded-full">Exit</a>
+        </div>
+    </header>
+
+    <div class="bg-teal-50 py-2 px-6 text-center border-b border-teal-100">
+        <p class="text-[10px] font-bold text-teal-700 uppercase tracking-widest">
+            ⚠️ MEDINOVA is an AI healthcare assistant and does not replace a licensed medical professional.
+        </p>
+    </div>
+
+    <!-- Chat Area -->
+    <main class="flex-1 max-w-4xl mx-auto w-full p-4 lg:p-8 flex flex-col">
+        <div id="chat-window" class="chat-container overflow-y-auto space-y-6 pr-2 mb-4 scroll-smooth">
+            <!-- Messages dynamic -->
+        </div>
+
+        <!-- Footer / Voice Controls -->
+        <footer class="mt-auto glass rounded-[2.5rem] shadow-2xl p-6 mb-4 relative overflow-hidden">
+            <div class="flex items-center gap-4 lg:gap-8 justify-center">
+                <button class="btn btn-circle btn-ghost lg:btn-lg text-slate-400" title="Breathe">
+                    <i data-lucide="wind"></i>
+                </button>
+
+                <div class="relative">
+                    <div id="mic-glow" class="absolute inset-0 bg-teal-400 rounded-full blur-xl opacity-20 scale-150 transition-all duration-500 hidden"></div>
+                    <button id="mic-btn" class="btn btn-circle btn-primary w-20 h-20 lg:w-24 lg:h-24 bg-teal-600 hover:bg-teal-700 border-none shadow-2xl relative z-10">
+                        <i id="mic-icon" data-lucide="mic" class="w-8 h-8 lg:w-10 lg:h-10 text-white"></i>
+                    </button>
+                </div>
+
+                <button id="report-btn" class="btn btn-circle btn-ghost lg:btn-lg text-slate-400 hidden" title="Download Report">
+                    <i data-lucide="file-down"></i>
+                </button>
+                <button id="print-btn" class="btn btn-circle btn-ghost lg:btn-lg text-slate-400 hidden" title="Print Report">
+                    <i data-lucide="printer"></i>
+                </button>
+            </div>
+            <div class="text-center mt-4">
+                <p id="mic-instruction" class="text-sm font-bold text-slate-400 uppercase tracking-widest">Tap to start voice consultation</p>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        lucide.createIcons();
+        const chatWindow = document.getElementById('chat-window');
+        const micBtn = document.getElementById('mic-btn');
+        const micIcon = document.getElementById('mic-icon');
+        const micGlow = document.getElementById('mic-glow');
+        const micInstruction = document.getElementById('mic-instruction');
+        const statusBadge = document.getElementById('status-badge');
+        const reportBtn = document.getElementById('report-btn');
+        const printBtn = document.getElementById('print-btn');
+
+        let isRecording = false;
+        let isConversationStarted = false;
+        let isAISpeaking = false;
+        let recognition;
+        let sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+        let patientData = { name: "Voice User", age: "Unknown", phone: "Voice-Only" };
+
+        const GREETING = "السلام علیکم! براہ کرم مجھے اپنا نام، عمر اور اپنی طبی علامات کے بارے میں تفصیل سے بتائیں۔";
+        const DISCLAIMER = "یہ ایک AI میڈیکل اسسٹنٹ ہے، ڈاکٹر نہیں۔ یہ صرف عمومی رہنمائی فراہم کرتا ہے۔ کسی بھی سنجیدہ مسئلے کی صورت میں فوراً ڈاکٹر سے رجوع کریں۔";
+
+        // Setup Recognition
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'ur-PK';
+
+            recognition.onstart = () => {
+                isRecording = true;
+                micBtn.classList.add('pulse-teal');
+                micGlow.classList.remove('hidden');
+                micInstruction.innerText = "Listening... Speak now";
+                statusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-white animate-ping"></span> LISTENING';
+                statusBadge.classList.replace('badge-success', 'badge-error');
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                micBtn.classList.remove('pulse-teal');
+                micGlow.classList.add('hidden');
+                if (!isAISpeaking) {
+                    statusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-white"></span> READY';
+                    statusBadge.classList.replace('badge-error', 'badge-success');
+                }
+            };
+
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                addUserMessage(text);
+                sendToAI(text);
+            };
+        }
+
+        async function startInitialSequence() {
+            isConversationStarted = true;
+            
+            // Auto-register voice session
+            await fetch('/api/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ ...patientData, session_id: sessionId })
+            });
+
+            await addAIMessage(DISCLAIMER);
+            await addAIMessage(GREETING);
+            startContinuousListening();
+        }
+
+        function startContinuousListening() {
+            if (!isAISpeaking) {
+                recognition.start();
+            }
+        }
+
+        micBtn.onclick = () => {
+            if (!isConversationStarted) {
+                startInitialSequence();
+            } else if (!isRecording && !isAISpeaking) {
+                recognition.start();
+            }
+        };
+
+        function addUserMessage(text) {
+            const html = `
+                <div class="chat chat-end animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div class="chat-bubble bg-teal-600 text-white shadow-lg text-lg p-5 rounded-2xl urdu">
+                        ${text}
+                    </div>
+                </div>
+            `;
+            chatWindow.innerHTML += html;
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        async function addAIMessage(text, autoSpeak = true) {
+            const html = `
+                <div class="chat chat-start animate-in fade-in slide-in-from-left-4 duration-500">
+                    <div class="chat-image avatar">
+                        <div class="w-12 rounded-full bg-teal-100 p-2 border-2 border-teal-500">
+                            <img src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Medinova" />
+                        </div>
+                    </div>
+                    <div class="chat-bubble bg-white text-slate-800 shadow-sm border border-slate-100 text-lg p-5 rounded-2xl urdu">
+                        ${text}
+                    </div>
+                </div>
+            `;
+            chatWindow.innerHTML += html;
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            if (autoSpeak) await speak(text);
+        }
+
+        async function sendToAI(text) {
+            statusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-white animate-pulse"></span> THINKING';
+            statusBadge.classList.replace('badge-success', 'badge-info');
+            micInstruction.innerText = "AI is thinking...";
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text, session_id: sessionId })
+                });
+                const data = await response.json();
+                
+                await addAIMessage(data.reply);
+                
+                if (data.is_finished) {
+                    reportBtn.classList.remove('hidden');
+                    printBtn.classList.remove('hidden');
+                    reportBtn.onclick = () => window.location.href = `/api/report/${sessionId}`;
+                    printBtn.onclick = () => printReport();
+                    micInstruction.innerText = "Consultation Finished. Report ready.";
+                    statusBadge.innerHTML = 'FINISHED';
+                    isConversationStarted = false; // Stop the auto-loop
+                } else {
+                    startContinuousListening();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function speak(text) {
+            isAISpeaking = true;
+            statusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-white animate-pulse"></span> SPEAKING';
+            statusBadge.classList.replace('badge-success', 'badge-info');
+            
+            const response = await fetch('/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            });
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            audio.playbackRate = 1.05;
+            
+            return new Promise((resolve) => {
+                audio.onended = () => {
+                    isAISpeaking = false;
+                    statusBadge.innerHTML = '<span class="w-2 h-2 rounded-full bg-white"></span> READY';
+                    statusBadge.classList.replace('badge-info', 'badge-success');
+                    URL.revokeObjectURL(url);
+                    resolve();
+                };
+                audio.play();
+            });
+        }
+
+        function printReport() {
+            const frame = document.createElement('iframe');
+            frame.style.position = 'fixed';
+            frame.style.right = '0';
+            frame.style.bottom = '0';
+            frame.style.width = '0';
+            frame.style.height = '0';
+            frame.style.border = '0';
+            frame.src = `/api/report/${sessionId}?inline=1`;
+            frame.onload = () => {
+                try {
+                    frame.contentWindow.focus();
+                    frame.contentWindow.print();
+                } catch (err) {
+                    window.open(`/api/report/${sessionId}?inline=1`, '_blank');
+                }
+            };
+            document.body.appendChild(frame);
+        }
+    </script>
+</body>
+</html>
